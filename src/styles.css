@@ -14,7 +14,7 @@ body {
   background: radial-gradient(ellipse at center, #20341f 0%, #0b120c 100%);
 }
 #stage { position: relative; box-shadow: 0 0 90px rgba(0, 0, 0, 0.7); }
-#game { position: absolute; inset: 0; display: block; }
+#game { position: absolute; inset: 0; display: block; touch-action: none; }
 #ui { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 #ui-inner {
   position: absolute; left: 0; top: 0;

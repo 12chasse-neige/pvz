@@ -61,6 +61,7 @@ function buildShotScene(shot: DebugShotConfig): Scene<GameEvents> {
         zombies: shot.zombies,
         wallnutHpFrac: shot.wallnutHpFrac,
         cherryFuse: shot.cherryFuse,
+        removeMowers: shot.removeMowers,
       });
     }
   }

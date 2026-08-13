@@ -57,6 +57,8 @@ export interface GameSceneOptions {
   zombies?: DebugZombiePatch[];
   wallnutHpFrac?: number;
   cherryFuse?: number;
+  /** Remove all lawn mowers (live defeat-flow tests). */
+  removeMowers?: boolean;
 }
 
 /**
@@ -272,7 +274,7 @@ export class GameScene implements Scene<GameEvents> {
       this.step(1 / 60);
       this.debugFrozen = true;
       this.debugAlpha = 0.5;
-    } else if (hasPatch) {
+    } else if (hasPatch || this.opts?.removeMowers) {
       this.applyDebugPatch();
       this.step(1 / 60);
     }
@@ -284,6 +286,21 @@ export class GameScene implements Scene<GameEvents> {
       zombiesLen: this.opts?.zombies?.length ?? 0,
       entities: this.world.entityCount(),
     };
+    // Occupancy reader for input-accuracy acceptance tests.
+    (window as unknown as Record<string, unknown>).__PVZ_KINDS__ = () =>
+      this.world.query('Renderable').map((ent) => {
+        const rr = this.world.get<{ kind: string }>(ent, 'Renderable');
+        const pos = this.world.get<{ x: number }>(ent, 'Position');
+        return rr ? rr.kind + '@' + Math.round(pos?.x ?? 0) : '?';
+      });
+    (window as unknown as Record<string, unknown>).__PVZ_GRID__ = () =>
+      this.setup.grid.map((col) =>
+        col.map((ent) => {
+          if (!ent) return null;
+          const info = this.world.get<{ kind: string }>(ent, 'PlantInfo');
+          return info ? info.kind : 'other';
+        }),
+      );
     // Deterministic quality-driver hook for the performance acceptance test.
     (window as unknown as Record<string, unknown>).__PVZ_QUALITY__ = {
       sample: (ms: number, n: number) => {
@@ -331,6 +348,14 @@ export class GameScene implements Scene<GameEvents> {
       if (kind === 'cherrybomb' && o.cherryFuse !== undefined) {
         const f = this.world.get<{ time: number }>(e, 'Fuse');
         if (f) f.time = o.cherryFuse;
+      }
+    }
+    if (o.removeMowers) {
+      const mowers = this.world.resources.mowers as (number | null)[];
+      for (const e of this.world.query('MowerC')) {
+        const m = this.world.get<{ row: number }>(e, 'MowerC');
+        if (m) mowers[m.row] = null;
+        this.world.destroy(e);
       }
     }
     for (const z of o.zombies ?? []) {

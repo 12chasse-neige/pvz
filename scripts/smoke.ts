@@ -101,6 +101,97 @@ async function main(): Promise<void> {
     console.log('live-play fps (headless, software rendering):', fps);
     await page.screenshot({ path: join(ART, 'smoke-live.png') });
 
+    // ---- accessibility: every button needs an accessible name ----
+    const unnamed = await page.evaluate(
+      `[...document.querySelectorAll('button')].filter((b) => !((b.getAttribute('aria-label') || '').trim() || (b.textContent || '').trim())).length`,
+    );
+    if (unnamed > 0) {
+      console.error('FAIL: buttons without accessible names:', unnamed);
+      process.exitCode = 1;
+    } else {
+      console.log('a11y: every button has an accessible name');
+    }
+
+    // ---- audio settings persist through the pause panel ----
+    const readMusicOn = `(() => { const raw = localStorage.getItem('pvz-save-v1'); return raw ? JSON.parse(raw).audio.musicOn : true; })()`;
+    const musicOnBefore = await page.evaluate(readMusicOn);
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('.option-row', { timeout: 3000 });
+    await page.click('.option-row:has-text("Music") input');
+    await page.waitForTimeout(150);
+    const musicOnAfter = await page.evaluate(readMusicOn);
+    if (musicOnBefore === musicOnAfter) {
+      console.error('FAIL: music toggle did not persist');
+      process.exitCode = 1;
+    } else {
+      console.log('audio settings persist through the pause panel');
+    }
+    await page.click('.option-row:has-text("Music") input'); // restore
+    await page.click('button:has-text("Resume")');
+
+    // ---- input accuracy: a click in a cell plants exactly there ----
+    await page.goto(URL + '?shot=1&scene=game&level=0&seed=5&live=1&mowers=0', { waitUntil: 'load' });
+    await page.waitForSelector('.hud', { timeout: 20000 });
+    await wait(900);
+    // select the first seed (sunflower) and click cell (3,2) center
+    await page.click('.seed-card');
+    const rect = await page.evaluate(`(() => { const r = document.getElementById('game').getBoundingClientRect(); return { left: r.left, top: r.top, w: r.width, h: r.height }; })()`);
+    const cellX = rect.left + ((40 + 3 * 80 + 40) / 800) * rect.w;
+    const cellY = rect.top + ((80 + 2 * 100 + 50) / 600) * rect.h;
+    await page.mouse.click(cellX, cellY);
+    await wait(250);
+    const grid = await page.evaluate('window.__PVZ_GRID__()');
+    if (grid[3][2] !== 'sunflower') {
+      console.error('FAIL: pointer click did not plant in the expected cell', JSON.stringify(grid));
+      process.exitCode = 1;
+    } else {
+      console.log('input accuracy: click planted in the exact expected cell');
+    }
+    // a click outside the lawn does not plant
+    await page.click('.seed-card');
+    await page.mouse.click(rect.left + 0.01 * rect.w, rect.top + 0.5 * rect.h);
+    await wait(250);
+    const grid2 = await page.evaluate('window.__PVZ_GRID__()');
+    const planted = grid2.flat().filter(Boolean).length;
+    if (planted !== 1) {
+      console.error('FAIL: off-lawn click planted a plant');
+      process.exitCode = 1;
+    }
+
+    // touch-tablet variant of the same accuracy check
+    const touchContext = await browser.newContext({ hasTouch: true, viewport: { width: 1024, height: 768 } });
+    const touchPage = await touchContext.newPage();
+    touchPage.on('pageerror', (e) => errors.push('touch pageerror: ' + String(e)));
+    touchPage.on('console', (m) => {
+      if (m.type() === 'error') errors.push('touch console: ' + m.text());
+    });
+    await touchPage.goto(URL + '?shot=1&scene=game&level=0&seed=5&live=1&mowers=0', { waitUntil: 'load' });
+    await touchPage.waitForSelector('.hud', { timeout: 20000 });
+    await wait(900);
+    await touchPage.tap('.seed-card');
+    const trect = await touchPage.evaluate(`(() => { const r = document.getElementById('game').getBoundingClientRect(); return { left: r.left, top: r.top, w: r.width, h: r.height }; })()`);
+    const tcx = trect.left + ((40 + 4 * 80 + 40) / 800) * trect.w;
+    const tcy = trect.top + ((80 + 3 * 100 + 50) / 600) * trect.h;
+    await touchPage.tap('#game', { position: { x: tcx - trect.left, y: tcy - trect.top } });
+    await wait(250);
+    const tgrid = await touchPage.evaluate('window.__PVZ_GRID__()');
+    if (tgrid[4][3] !== 'sunflower') {
+      console.error('FAIL: touch tap did not plant in the expected cell', JSON.stringify(tgrid));
+      process.exitCode = 1;
+    } else {
+      console.log('touch accuracy: tap planted in the exact expected cell (tablet)');
+    }
+    await touchContext.close();
+
+    // ---- live defeat flow: zombie crosses the house line ----
+    await page.goto(
+      URL + '?shot=1&scene=game&level=0&seed=5&live=1&mowers=0&zombies=' + encodeURIComponent(JSON.stringify([{ kind: 'basic', row: 0, x: 12 }])),
+      { waitUntil: 'load' },
+    );
+    await page.waitForSelector('.result-lose', { timeout: 30000 });
+    console.log('live defeat flow: loss leads to the defeat scene');
+    await page.screenshot({ path: join(ART, 'smoke-defeat.png') });
+
     await wait(400);
     if (errors.length > 0) {
       console.error('BROWSER ERRORS:\n' + errors.join('\n'));

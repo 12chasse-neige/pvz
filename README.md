@@ -91,8 +91,10 @@ pnpm smoke
   animation playback + markers, state resolver (damage tiers, urgency,
   produce window), interpolation history, quality hysteresis, particle
   caps, camera determinism, save migration.
-- `pnpm smoke` — boot smoke test in headless Chromium (screenshots to
-  `.artifacts/`).
+- `pnpm smoke` — boot smoke test in headless Chromium: menu → level select
+  → plant → pause flow, FPS probe, accessible-name scan, audio-settings
+  persistence, pointer + touch cell-accuracy checks, and the live
+  defeat flow (screenshots to `.artifacts/`).
 - `pnpm shots` — deterministic screenshots: menu, level select, gallery,
   full HUD, pause, victory, defeat, empty/planted lawn, major wave,
   explosion, frozen zombie, damaged Wall-nut, mower, dense combat, desktop

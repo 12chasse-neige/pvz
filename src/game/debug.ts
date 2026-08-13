@@ -32,6 +32,7 @@ export interface DebugShotConfig {
   zombies?: DebugZombiePatch[];
   wallnutHpFrac?: number;
   cherryFuse?: number;
+  removeMowers?: boolean;
   galleryGroup?: number;
   stats?: LevelStats;
   /** Live (unfrozen) debug boot for performance scenes. */
@@ -74,6 +75,7 @@ export function debugFromUrl(): DebugShotConfig | null {
     zombies: parseJson<DebugZombiePatch[]>('zombies'),
     wallnutHpFrac: p.has('wallnutHpFrac') ? num('wallnutHpFrac', 1) : undefined,
     cherryFuse: p.has('cherryFuse') ? num('cherryFuse', 0.01) : undefined,
+    removeMowers: p.get('mowers') === '0',
     galleryGroup: p.has('galleryGroup') ? num('galleryGroup', 0) : undefined,
     stats: parseJson<LevelStats>('stats'),
     live: p.get('live') === '1',
