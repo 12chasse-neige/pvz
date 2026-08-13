@@ -14,9 +14,9 @@ import {
   cellTop,
   pixelToCell,
 } from '../config';
-import type { MowerC, Position, SunC } from '../components';
+import type { Health, MowerC, Position, SunC } from '../components';
 import type { GameEvents, LevelStats } from '../events';
-import { burst, makePlant, spawnFloater } from '../factory';
+import { burst, makePlant, makeZombie, spawnFloater } from '../factory';
 import { setupWorld } from '../setup';
 import type { WorldSetup } from '../setup';
 import type { GameState } from '../state';
@@ -32,13 +32,31 @@ import { CameraState } from '../render/camera';
 import { CosmeticFx } from '../render/fx';
 import { paintEntity, updateAnimator } from '../render/renderer';
 import type { RenderCtx } from '../render/renderer';
+import { ZOMBIE_SPRITES } from '../anim/resolver';
 import { QualityManager } from '../render/quality';
 import type { MarkerEvent } from '../anim/playback';
 import { MenuScene } from './MenuScene';
 import { ResultScene } from './ResultScene';
+import { Rng } from '../../core/Rng';
+import { RENDER_PROFILES } from '../anim/types';
+import type { RenderTier } from '../anim/types';
+import type { DebugPlantPatch, DebugZombiePatch } from '../debug';
+import { PREV_POSITION } from '../render/history';
+import { ZOMBIES } from '../content';
 
 function randomSeed(): number {
   return Math.floor(Math.random() * 0x7fffffff);
+}
+
+/** Deterministic screenshot/perf boot options (never used in normal play). */
+export interface GameSceneOptions {
+  fixedT?: number;
+  forcedTier?: RenderTier;
+  reducedMotion?: boolean;
+  plants?: DebugPlantPatch[];
+  zombies?: DebugZombiePatch[];
+  wallnutHpFrac?: number;
+  cherryFuse?: number;
 }
 
 /**
@@ -70,17 +88,27 @@ export class GameScene implements Scene<GameEvents> {
   private displaySun = 0;
   private lastRenderMs = 0;
   private rctx!: RenderCtx;
+  private debugFrozen = false;
+  private debugAlpha = 1;
+  private debugPending = false;
+  private readonly debugRng: Rng;
+  private stats = { fps: 0, particles: 0, actors: 0, entities: 0, tier: 'high' };
 
   constructor(
     private readonly level: LevelDef,
     private readonly seed: number,
-  ) {}
+    private readonly opts?: GameSceneOptions,
+  ) {
+    this.debugRng = new Rng((seed ^ 0x5bf03635) >>> 0);
+  }
 
   onEnter(ctx: SceneContext<GameEvents>): void {
     this.ctx = ctx;
+    this.debugPending = this.opts?.fixedT !== undefined;
     const settings = save.load();
     const reducedMotion =
-      settings.reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      this.opts?.reducedMotion ??
+      (settings.reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     this.battlefield = new Battlefield(ctx.assets);
     this.battlefield.refreshFromAssets();
@@ -93,13 +121,17 @@ export class GameScene implements Scene<GameEvents> {
       coarsePointer: window.matchMedia('(pointer: coarse)').matches,
       reducedMotion,
     });
+    if (this.opts?.forcedTier) {
+      Object.assign(this.quality.profile, RENDER_PROFILES[this.opts.forcedTier]);
+    }
     this.quality.onChange = (p) => {
       ctx.view.dprCap = p.dprCap;
       ctx.view.resize();
+      this.fx.setCap(p.particleCap);
     };
     ctx.view.dprCap = this.quality.profile.dprCap;
     ctx.view.resize();
-    this.fx = new CosmeticFx(this.quality.profile.particleCap);
+    this.fx = new CosmeticFx(this.quality.profile.particleCap, () => this.debugRng.next());
     this.animator = new Animator((s) => ctx.assets.getSprite(s));
     this.rctx = {
       ctx: ctx.view.ctx,
@@ -165,6 +197,33 @@ export class GameScene implements Scene<GameEvents> {
         else ctx.audio.shoot();
       }),
     );
+    this.unsubs.push(
+      events.on('projectile-hit', (p) => {
+        if (p.kind === 'frozen') {
+          // ice shards + breath vapor on frozen hits
+          this.fx.burst(p.x, p.y, '#cfeaff', this.quality.scaleParticles(6), 130, 'shard', 1, 90);
+          for (let i = 0; i < 3; i++) {
+            this.fx.spawn({
+              x: p.x + 4,
+              y: p.y - 6 - i * 4,
+              vx: 8,
+              vy: -18 - i * 6,
+              ttl: 0.8,
+              maxTtl: 0.8,
+              size: 4 + i,
+              color: 'rgba(255,255,255,0.75)',
+              gravity: -12,
+              kind: 'smoke',
+              priority: 0,
+            });
+          }
+          ctx.audio.armorHit();
+        } else {
+          this.fx.burst(p.x, p.y, '#a8e860', this.quality.scaleParticles(5), 120, 'dot', 1, 140);
+          this.fx.burst(p.x, p.y, '#5f9e46', this.quality.scaleParticles(3), 60, 'dot', 0, 200);
+        }
+      }),
+    );
     this.unsubs.push(events.on('plant-placed', () => ctx.audio.plant()));
     this.unsubs.push(events.on('plant-removed', () => ctx.audio.dig()));
     this.unsubs.push(events.on('sun-collected', () => ctx.audio.sun()));
@@ -188,26 +247,50 @@ export class GameScene implements Scene<GameEvents> {
     this.unsubs.push(
       events.on('zombie-killed', (ev) => {
         ctx.audio.zombieGroan();
-        this.fx.spawnActor('zombie-basic', 'death', ev.x, ev.y, 1.5, 0.66);
+        const v = ZOMBIE_SPRITES[ev.kind];
+        this.fx.spawnActor(v.sprite, 'death', ev.x, ev.y, 1.5, v.scale);
       }),
     );
 
     this.hud.showBanner(this.level.name + ': defend the house!', 'info');
     ctx.audio.playMusic('game');
+
+    // Deterministic screenshot boot: fast-forward to fixedT, apply patches,
+    // settle one step, then freeze the simulation. Live perf scenes apply
+    // patches but keep playing.
+    const hasPatch =
+      this.opts &&
+      (this.opts.plants || this.opts.zombies || this.opts.wallnutHpFrac !== undefined || this.opts.cherryFuse !== undefined);
+    if (this.opts?.fixedT !== undefined) {
+      const steps = Math.floor(this.opts.fixedT / (1 / 60));
+      for (let i = 0; i < steps; i++) this.step(1 / 60);
+      this.applyDebugPatch();
+      this.step(1 / 60);
+      this.debugFrozen = true;
+      this.debugAlpha = 0.5;
+    } else if (hasPatch) {
+      this.applyDebugPatch();
+      this.step(1 / 60);
+    }
+    (window as unknown as Record<string, unknown>).__PVZ_STATS__ = this.stats;
+    (window as unknown as Record<string, unknown>).__PVZ_DEBUG_INFO__ = {
+      hasOpts: !!this.opts,
+      fixedT: this.opts?.fixedT,
+      plantsLen: this.opts?.plants?.length ?? 0,
+      zombiesLen: this.opts?.zombies?.length ?? 0,
+      entities: this.world.entityCount(),
+    };
+    // Deterministic quality-driver hook for the performance acceptance test.
+    (window as unknown as Record<string, unknown>).__PVZ_QUALITY__ = {
+      sample: (ms: number, n: number) => {
+        for (let i = 0; i < n; i++) this.quality.sampleFrame(ms);
+      },
+      tier: () => this.quality.tier,
+    };
   }
 
-  onExit(): void {
-    for (const off of this.unsubs) off();
-    this.unsubs = [];
-    this.ctx.input.onDown = null;
-    this.ctx.input.onMove = null;
-    this.hud.destroy();
-    this.hidePause();
-    this.ctx.audio.stopMusic();
-    this.ctx.audio.mowerStop();
-  }
-
-  update(dt: number): void {
+  /** One deterministic simulation step (world + presentation clocks). */
+  private step(dt: number): void {
     this.timers.update(dt);
     this.world.update(dt);
     updateAnimator(this.world, dt, this.animator, this.ctx.assets, (e, kind, marker) =>
@@ -223,6 +306,61 @@ export class GameScene implements Scene<GameEvents> {
       this.displaySun = this.state.sun;
       this.hud.setSun(this.displaySun);
     }
+  }
+
+  /** Inject debug entities after the fast-forward (screenshot setups). */
+  private applyDebugPatch(): void {
+    const o = this.opts;
+    if (!o) return;
+    const t = this.world.resources.time as number;
+    for (const raw of o.plants ?? []) {
+      const [kindName, col, row] = Array.isArray(raw) ? raw : [raw.kind, raw.col, raw.row];
+      const kind = kindName as PlantKind;
+      if (!PLANTS[kind]) continue;
+      const e = makePlant(this.world, kind, col, row);
+      this.setup.grid[col]![row] = e;
+      if (kind === 'wallnut' && o.wallnutHpFrac !== undefined) {
+        const h = this.world.get<Health>(e, 'Health')!;
+        h.hp = h.max * o.wallnutHpFrac;
+      }
+      if (kind === 'cherrybomb' && o.cherryFuse !== undefined) {
+        const f = this.world.get<{ time: number }>(e, 'Fuse');
+        if (f) f.time = o.cherryFuse;
+      }
+    }
+    for (const z of o.zombies ?? []) {
+      const def = ZOMBIES[z.kind];
+      const e = makeZombie(this.world, z.kind, z.row, this.debugRng);
+      const pos = this.world.get<Position>(e, 'Position')!;
+      pos.x = z.x;
+      const prev = this.world.get<Position>(e, PREV_POSITION);
+      if (prev) prev.x = z.x;
+      if (z.hpFrac !== undefined) {
+        const h = this.world.get<Health>(e, 'Health')!;
+        h.hp = h.max * z.hpFrac;
+      }
+      if (z.slowed) {
+        const b = this.world.get<{ slowUntil: number }>(e, 'ZombieBrain')!;
+        b.slowUntil = t + 5;
+      }
+      void def;
+    }
+  }
+
+  onExit(): void {
+    for (const off of this.unsubs) off();
+    this.unsubs = [];
+    this.ctx.input.onDown = null;
+    this.ctx.input.onMove = null;
+    this.hud.destroy();
+    this.hidePause();
+    this.ctx.audio.stopMusic();
+    this.ctx.audio.mowerStop();
+  }
+
+  update(dt: number): void {
+    if (this.debugFrozen) return;
+    this.step(dt);
 
     // mower engine loop while any mower is active
     const anyActive = this.world
@@ -254,8 +392,40 @@ export class GameScene implements Scene<GameEvents> {
       case 'footstep':
         this.fx.burst(p.x, p.y + groundY - 2, '#cbbf9a', 1, 22, 'dot', 0, 120);
         break;
-      case 'bite':
+      case 'bite': {
         this.ctx.audio.chomp();
+        // leaf/shell debris flies off the bitten plant
+        const brain = this.world.get<{ target: number | null }>(e, 'ZombieBrain');
+        const target = brain?.target ?? null;
+        if (target !== null) {
+          const tp = this.world.get<Position>(target, 'Position');
+          if (tp) {
+            this.fx.burst(tp.x, tp.y - 14, '#7ec850', this.quality.scaleParticles(3), 70, 'dot', 0, 220);
+            this.fx.burst(tp.x, tp.y - 8, '#3fae3f', this.quality.scaleParticles(2), 50, 'dot', 0, 240);
+          }
+        }
+        break;
+      }
+      case 'sunburst':
+        this.fx.burst(p.x, p.y + groundY - 20, '#ffe14d', this.quality.scaleParticles(8), 90, 'spark', 1, 60);
+        break;
+      case 'clip':
+        this.fx.burst(p.x - 20, p.y + 26, '#7ec850', this.quality.scaleParticles(2), 80, 'dot', 0, 260);
+        break;
+      case 'exhaust':
+        this.fx.spawn({
+          x: p.x - 26,
+          y: p.y + 16,
+          vx: -14,
+          vy: -16,
+          ttl: 0.9,
+          maxTtl: 0.9,
+          size: 5,
+          color: 'rgba(200,200,196,0.6)',
+          gravity: -10,
+          kind: 'smoke',
+          priority: 0,
+        });
         break;
       default:
         break;
@@ -263,10 +433,17 @@ export class GameScene implements Scene<GameEvents> {
   }
 
   render(alpha: number): void {
+    if (this.debugFrozen) alpha = this.debugAlpha;
     // adaptive quality: feed the rolling frame-time average
     const now = performance.now();
     if (this.lastRenderMs > 0) this.quality.sampleFrame(now - this.lastRenderMs);
     this.lastRenderMs = now;
+    // live stats for the performance acceptance scenes
+    this.stats.fps = this.lastRenderMs > 0 ? Math.min(240, Math.round(1000 / Math.max(1, now - this.lastRenderMs))) : 0;
+    this.stats.particles = this.fx.particleCount;
+    this.stats.actors = this.fx.actorCount;
+    this.stats.entities = this.world.entityCount();
+    this.stats.tier = this.quality.tier;
 
     const view = this.ctx.view;
     const ctx = view.ctx;
@@ -482,7 +659,7 @@ export class GameScene implements Scene<GameEvents> {
   /* ---------- flow ---------- */
 
   private finish(won: boolean): void {
-    if (this.over) return;
+    if (this.over || this.debugPending) return;
     this.over = true;
     const stats: LevelStats = {
       kills: this.state.kills,

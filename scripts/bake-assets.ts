@@ -16,7 +16,11 @@ import type { AnimationClip, AtlasManifest, FrameMarker, LoopMode } from '../src
 import { drawClouds, drawFoliage, drawHouse, drawLawn, drawSky, LOGICAL_H, LOGICAL_W } from '../src/art/environment';
 import { drawBlastFrame, drawMowerFrame, drawPeaFrame, drawSunFrame, MOWER_H, MOWER_W, PEA_H, PEA_W, SUN_H, SUN_W, BLAST_H, BLAST_W } from '../src/art/effects';
 import { drawPeashooterFrame, PEASHOOTER_H, PEASHOOTER_W } from '../src/art/peashooter';
-import { drawBasicZombieFrame, ZOMBIE_H, ZOMBIE_W } from '../src/art/zombie';
+import { drawSunflowerFrame, SUNFLOWER_H, SUNFLOWER_W } from '../src/art/sunflower';
+import { drawWallnutFrame, WALLNUT_H, WALLNUT_W } from '../src/art/wallnut';
+import { drawCherryFrame, CHERRY_H, CHERRY_W } from '../src/art/cherry';
+import { drawZombieFrame, ZOMBIE_VARIANT_H, ZOMBIE_VARIANT_W } from '../src/art/zombie';
+import type { ZombieVariant } from '../src/art/zombie';
 import {
   drawFlagIcon,
   drawLockIcon,
@@ -92,8 +96,9 @@ const SPRITES: SpriteJob[] = [
           { frame: 8 },
         ],
       },
+      { name: 'hit', fps: 10, loop: 'once', next: 'idle', frames: [{ frame: 9 }, { frame: 10 }] },
     ],
-    draw: (ctx, clip, frame) => drawPeashooterFrame(ctx, { clip: clip as 'idle' | 'fire', frame }),
+    draw: (ctx, clip, frame) => drawPeashooterFrame(ctx, { clip: clip as 'idle' | 'fire' | 'hit', frame }),
   },
   {
     key: 'snowpea',
@@ -116,39 +121,68 @@ const SPRITES: SpriteJob[] = [
           { frame: 8 },
         ],
       },
+      { name: 'hit', fps: 10, loop: 'once', next: 'idle', frames: [{ frame: 9 }, { frame: 10 }] },
     ],
-    draw: (ctx, clip, frame) => drawPeashooterFrame(ctx, { clip: clip as 'idle' | 'fire', frame, frozen: true }),
+    draw: (ctx, clip, frame) =>
+      drawPeashooterFrame(ctx, { clip: clip as 'idle' | 'fire' | 'hit', frame, frozen: true }),
   },
   {
-    key: 'zombie-basic',
+    key: 'sunflower',
     atlas: 'characters',
     anchor: 'bottom',
-    w: ZOMBIE_W,
-    h: ZOMBIE_H,
-    pivot: [0.5, 0.97],
-    defaultClip: 'walk',
+    w: SUNFLOWER_W,
+    h: SUNFLOWER_H,
+    pivot: [0.5, 0.94],
+    defaultClip: 'idle',
     clips: [
-      walkClip('walk', 8, 8, [1, 5]),
+      { name: 'idle', fps: 10, loop: 'loop', frames: [0, 1, 2, 3, 4, 5, 6, 7].map((frame) => ({ frame })) },
       {
-        name: 'eat',
-        fps: 6,
-        loop: 'loop',
+        name: 'produce',
+        fps: 12,
+        loop: 'once',
+        next: 'idle',
         frames: [
           { frame: 8 },
-          { frame: 9, markers: [{ at: 0, event: 'bite' }] },
+          { frame: 9 },
           { frame: 10 },
-          { frame: 11 },
+          { frame: 11, markers: [{ at: 0, event: 'sunburst' }] },
         ],
       },
-      {
-        name: 'death',
-        fps: 9,
-        loop: 'hold',
-        frames: [{ frame: 12 }, { frame: 13 }, { frame: 14 }, { frame: 15 }],
-      },
     ],
-    draw: (ctx, clip, frame) => drawBasicZombieFrame(ctx, clip as 'walk' | 'eat' | 'death', frame),
+    draw: (ctx, clip, frame) => drawSunflowerFrame(ctx, clip as 'idle' | 'produce', frame),
   },
+  {
+    key: 'wallnut',
+    atlas: 'characters',
+    anchor: 'bottom',
+    w: WALLNUT_W,
+    h: WALLNUT_H,
+    pivot: [0.5, 0.94],
+    defaultClip: 'full',
+    clips: [
+      { name: 'full', fps: 6, loop: 'loop', frames: [0, 1, 2, 3, 4, 5].map((frame) => ({ frame })) },
+      { name: 'cracked', fps: 6, loop: 'loop', frames: [6, 7, 8, 9, 10, 11].map((frame) => ({ frame })) },
+      { name: 'broken', fps: 6, loop: 'loop', frames: [12, 13, 14, 15, 16, 17].map((frame) => ({ frame })) },
+      { name: 'squash', fps: 10, loop: 'once', next: 'full', frames: [{ frame: 18 }, { frame: 19 }, { frame: 20 }] },
+    ],
+    draw: (ctx, clip, frame) => drawWallnutFrame(ctx, clip, frame),
+  },
+  {
+    key: 'cherry',
+    atlas: 'characters',
+    anchor: 'bottom',
+    w: CHERRY_W,
+    h: CHERRY_H,
+    pivot: [0.5, 0.94],
+    defaultClip: 'idle',
+    clips: [
+      { name: 'idle', fps: 8, loop: 'loop', frames: [0, 1, 2, 3, 4, 5].map((frame) => ({ frame })) },
+      { name: 'urgent', fps: 10, loop: 'loop', frames: [6, 7, 8].map((frame) => ({ frame })) },
+      { name: 'preflash', fps: 8, loop: 'loop', frames: [9, 10].map((frame) => ({ frame })) },
+    ],
+    draw: (ctx, clip, frame) => drawCherryFrame(ctx, clip as 'idle' | 'urgent' | 'preflash', frame),
+  },
+  ...zombieJobs(),
   {
     key: 'pea',
     atlas: 'effects',
@@ -192,7 +226,17 @@ const SPRITES: SpriteJob[] = [
     defaultClip: 'idle',
     clips: [
       { name: 'idle', fps: 8, loop: 'loop', frames: [{ frame: 0 }] },
-      { name: 'run', fps: 12, loop: 'loop', frames: [1, 2, 3, 4].map((frame) => ({ frame })) },
+      {
+        name: 'run',
+        fps: 12,
+        loop: 'loop',
+        frames: [
+          { frame: 1, markers: [{ at: 0, event: 'clip' }] },
+          { frame: 2, markers: [{ at: 0, event: 'exhaust' }] },
+          { frame: 3, markers: [{ at: 0, event: 'clip' }] },
+          { frame: 4 },
+        ],
+      },
     ],
     draw: (ctx, _clip, frame) => drawMowerFrame(ctx, frame),
   },
@@ -204,10 +248,91 @@ const SPRITES: SpriteJob[] = [
     h: BLAST_H,
     pivot: [0.5, 0.5],
     defaultClip: 'boom',
-    clips: [{ name: 'boom', fps: 20, loop: 'hold', frames: [0, 1, 2, 3].map((frame) => ({ frame })) }],
+    clips: [{ name: 'boom', fps:20, loop: 'hold', frames: [0, 1, 2, 3].map((frame) => ({ frame })) }],
     draw: (ctx, _clip, frame) => drawBlastFrame(ctx, frame),
   },
 ];
+
+/** All five zombie variants share one clip layout (walk/eat/death). */
+function zombieJobs(): SpriteJob[] {
+  const variants: { kind: ZombieVariant; key: string; walkFps: number; tiers: boolean }[] = [
+    { kind: 'basic', key: 'zombie-basic', walkFps: 8, tiers: false },
+    { kind: 'cone', key: 'zombie-cone', walkFps: 8, tiers: true },
+    { kind: 'bucket', key: 'zombie-bucket', walkFps: 7, tiers: true },
+    { kind: 'runner', key: 'zombie-runner', walkFps: 12, tiers: false },
+    { kind: 'flag', key: 'zombie-flag', walkFps: 10, tiers: false },
+  ];
+  return variants.map((v) => {
+    const clips: ClipJob[] = [];
+    const tierOf = (clip: string): 0 | 1 | 2 =>
+      clip === 'walk-dmg1' || clip === 'eat-dmg1' ? 1 : clip === 'walk-dmg2' || clip === 'eat-dmg2' ? 2 : 0;
+    if (v.tiers) {
+      for (const name of ['walk', 'walk-dmg1', 'walk-dmg2'] as const) {
+        const base = name === 'walk' ? 0 : name === 'walk-dmg1' ? 8 : 16;
+        clips.push({
+          name,
+          fps: v.walkFps,
+          loop: 'loop',
+          frames: Array.from({ length: 8 }, (_, i) => ({
+            frame: base + i,
+            markers: i === 1 || i === 5 ? [{ at: 0, event: 'footstep' }] : undefined,
+          })),
+        });
+      }
+      for (const name of ['eat', 'eat-dmg1', 'eat-dmg2'] as const) {
+        const base = name === 'eat' ? 24 : name === 'eat-dmg1' ? 28 : 32;
+        clips.push({
+          name,
+          fps: 6,
+          loop: 'loop',
+          frames: [
+            { frame: base },
+            { frame: base + 1, markers: [{ at: 0, event: 'bite' }] },
+            { frame: base + 2 },
+            { frame: base + 3 },
+          ],
+        });
+      }
+      clips.push({ name: 'death', fps: 9, loop: 'hold', frames: [36, 37, 38, 39].map((frame) => ({ frame })) });
+    } else {
+      clips.push({
+        name: 'walk',
+        fps: v.walkFps,
+        loop: 'loop',
+        frames: Array.from({ length: 8 }, (_, i) => ({
+          frame: i,
+          markers: i === 1 || i === 5 ? [{ at: 0, event: 'footstep' }] : undefined,
+        })),
+      });
+      clips.push({
+        name: 'eat',
+        fps: 6,
+        loop: 'loop',
+        frames: [
+          { frame: 8 },
+          { frame: 9, markers: [{ at: 0, event: 'bite' }] },
+          { frame: 10 },
+          { frame: 11 },
+        ],
+      });
+      clips.push({ name: 'death', fps: 9, loop: 'hold', frames: [12, 13, 14, 15].map((frame) => ({ frame })) });
+    }
+    return {
+      key: v.key,
+      atlas: 'characters' as const,
+      anchor: 'bottom' as const,
+      w: ZOMBIE_VARIANT_W,
+      h: ZOMBIE_VARIANT_H,
+      pivot: [0.5, 0.95] as [number, number],
+      defaultClip: 'walk',
+      clips,
+      draw: (ctx: Ctx, clip: string, frame: number) =>
+        drawZombieFrame(ctx, { clip: (clip.startsWith('eat') ? 'eat' : clip) as 'walk' | 'eat' | 'death', frame, kind: v.kind, tier: tierOf(clip) }),
+    };
+  });
+}
+
+
 
 const UI_ICONS: { key: string; w: number; h: number; pivot: [number, number]; draw: (ctx: Ctx) => void }[] = [
   { key: 'ui.sun', w: 40, h: 40, pivot: [0.5, 0.5], draw: drawSunIcon },
@@ -247,14 +372,16 @@ const MARGIN = 2; // logical px of padding around measured art bounds
  * pivot). This guarantees frames never clip and pivots sit exactly at the
  * character's ground contact.
  */
-function measure(job: SpriteJob): { minX: number; minY: number; maxX: number; maxY: number } {
+function measure(job: SpriteJob, clipName: string): { minX: number; minY: number; maxX: number; maxY: number } {
   const probe = createCanvas(PROBE, PROBE);
   const pctx = probe.getContext('2d') as unknown as Ctx;
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  for (const clip of job.clips) {
+  const clip = job.clips.find((c) => c.name === clipName);
+  if (!clip) return { minX: 0, minY: 0, maxX: 4, maxY: 4 };
+  {
     for (const f of clip.frames) {
       pctx.clearRect(0, 0, PROBE, PROBE);
       pctx.save();
@@ -285,8 +412,8 @@ interface Measured {
   pivot: [number, number];
 }
 
-function layoutOf(job: SpriteJob): Measured {
-  const b = measure(job);
+function layoutOf(job: SpriteJob, clipName: string): Measured {
+  const b = measure(job, clipName);
   const w = Math.max(4, b.maxX - b.minX + MARGIN * 2);
   const h = Math.max(4, b.maxY - b.minY + MARGIN * 2);
   if (job.anchor === 'bottom') {
@@ -349,8 +476,8 @@ function packAtlas(
 function buildAtlas(jobs: SpriteJob[], name: 'characters' | 'effects' | 'ui'): { w: number; h: number; frames: PackedFrame[] } {
   const list: { canvas: ReturnType<typeof createCanvas>; key: string; frame: number; w: number; h: number }[] = [];
   for (const job of jobs) {
-    const layout = layoutOf(job);
     for (const clip of job.clips) {
+      const layout = layoutOf(job, clip.name);
       for (const f of clip.frames) {
         const canvas = renderFrame(job, layout, clip.name, f.frame);
         list.push({ canvas, key: job.key, frame: f.frame, w: canvas.width, h: canvas.height });
@@ -364,7 +491,7 @@ function buildAtlas(jobs: SpriteJob[], name: 'characters' | 'effects' | 'ui'): {
     const placed = out.find((p) => p.key === f.key && p.frame === f.frame)!;
     actx.drawImage(f.canvas as unknown as Parameters<Ctx['drawImage']>[0], placed.x, placed.y);
   }
-  writeFileSync(join(OUT_DIR, name + '.png'), atlas.toBuffer('image/png'));
+  writeFileSync(join(OUT_DIR, name + '.webp'), atlas.toBuffer('image/webp'));
   return { w: atlasW, h: atlasH, frames: out };
 }
 
@@ -383,7 +510,7 @@ function bakeEnvironment(): void {
     ctx.scale(SCALE, SCALE);
     layer.draw(ctx);
     ctx.restore();
-    writeFileSync(join(OUT_DIR, layer.name + '.png'), c.toBuffer('image/png'));
+    writeFileSync(join(OUT_DIR, layer.name + '.webp'), c.toBuffer('image/webp'));
   }
 }
 
@@ -419,15 +546,24 @@ function main(): void {
         }))
       : SPRITES.filter((s) => s.atlas === name);
     const { w, h, frames } = buildAtlas(jobs, name);
-    manifest.atlases[name] = { url: 'assets/' + name + '.png', w, h };
+    manifest.atlases[name] = { url: 'assets/' + name + '.webp', w, h };
     for (const job of jobs) {
-      const layout = layoutOf(job);
       const jobFrames = frames
         .filter((f) => f.key === job.key)
         .sort((a, b) => a.frame - b.frame)
         .map((f) => ({ x: f.x, y: f.y, w: f.w, h: f.h }));
       const clips: Record<string, AnimationClip> = {};
+      const maxFrame = Math.max(...jobFrames.map((f) => f.frame), 0);
+      const pivots: [number, number][] = Array.from({ length: maxFrame + 1 }, () => [0.5, 0.5]);
+      let maxW = 4;
+      let maxH = 4;
+      let defaultPivot: [number, number] = [0.5, 0.5];
       for (const clip of job.clips) {
+        const layout = layoutOf(job, clip.name);
+        maxW = Math.max(maxW, layout.w);
+        maxH = Math.max(maxH, layout.h);
+        if (clip.name === job.defaultClip) defaultPivot = layout.pivot;
+        for (const f of clip.frames) pivots[f.frame] = layout.pivot;
         clips[clip.name] = {
           fps: clip.fps,
           loop: clip.loop,
@@ -437,9 +573,10 @@ function main(): void {
       }
       manifest.sprites[job.key] = {
         atlas: job.atlas,
-        pivot: layout.pivot,
-        logicalW: Math.ceil(layout.w),
-        logicalH: Math.ceil(layout.h),
+        pivot: defaultPivot,
+        pivots,
+        logicalW: Math.ceil(maxW),
+        logicalH: Math.ceil(maxH),
         frames: jobFrames,
         clips,
         defaultClip: job.defaultClip,
@@ -450,7 +587,7 @@ function main(): void {
   // Flat environment textures.
   bakeEnvironment();
   for (const name of ['env-sky', 'env-clouds', 'env-house', 'env-lawn', 'env-foliage'] as const) {
-    manifest.textures[name] = { url: 'assets/' + name + '.png', w: LOGICAL_W * SCALE, h: LOGICAL_H * SCALE };
+    manifest.textures[name] = { url: 'assets/' + name + '.webp', w: LOGICAL_W * SCALE, h: LOGICAL_H * SCALE };
   }
 
   writeFileSync(join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));

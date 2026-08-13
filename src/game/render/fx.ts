@@ -66,9 +66,12 @@ export class CosmeticFx {
   private flyers: Flyer[] = [];
   private nextActorId = -1;
   private cap: number;
+  /** Injectable randomness — seeded in deterministic screenshot mode. */
+  private readonly random: () => number;
 
-  constructor(cap = 200) {
+  constructor(cap = 200, random: () => number = Math.random) {
     this.cap = cap;
+    this.random = random;
   }
 
   setCap(cap: number): void {
@@ -109,9 +112,9 @@ export class CosmeticFx {
     gravity = 160,
   ): void {
     for (let i = 0; i < count; i++) {
-      const ttl = 0.35 + Math.random() * 0.3;
-      const a = Math.random() * Math.PI * 2;
-      const v = (0.4 + Math.random() * 0.6) * speed;
+      const ttl = 0.35 + this.random() * 0.3;
+      const a = this.random() * Math.PI * 2;
+      const v = (0.4 + this.random() * 0.6) * speed;
       this.spawn({
         x,
         y,
@@ -119,7 +122,7 @@ export class CosmeticFx {
         vy: Math.sin(a) * v - speed * 0.25,
         ttl,
         maxTtl: ttl,
-        size: kind === 'smoke' ? 5 + Math.random() * 5 : 2.5 + Math.random() * 2.5,
+        size: kind === 'smoke' ? 5 + this.random() * 5 : 2.5 + this.random() * 2.5,
         color,
         gravity,
         kind,

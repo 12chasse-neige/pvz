@@ -24,8 +24,11 @@ export class LevelSelectScene implements Scene<GameEvents> {
   private root!: HTMLDivElement;
   private t = 0;
 
+  constructor(private readonly debugT?: number) {}
+
   onEnter(ctx: SceneContext<GameEvents>): void {
     this.ctx = ctx;
+    if (this.debugT !== undefined) this.t = this.debugT;
     this.battlefield = new Battlefield(ctx.assets);
     this.battlefield.refreshFromAssets();
     const data = save.load();
@@ -164,6 +167,7 @@ export class LevelSelectScene implements Scene<GameEvents> {
   }
 
   update(dt: number): void {
+    if (this.debugT !== undefined) return;
     this.t += dt;
   }
 

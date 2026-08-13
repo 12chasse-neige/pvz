@@ -28,10 +28,12 @@ export function drawSpriteFrame(
   const rect = def.frames[frame];
   if (!rect) return false;
   const s = opts.scale ?? 1;
-  const lw = def.logicalW * s;
-  const lh = def.logicalH * s;
-  const px = def.pivot[0] * lw;
-  const py = def.pivot[1] * lh;
+  const scaleInv = assets.getManifest()?.scale ?? 2;
+  const lw = (rect.w / scaleInv) * s;
+  const lh = (rect.h / scaleInv) * s;
+  const pivot = def.pivots?.[frame] ?? def.pivot;
+  const px = pivot[0] * lw;
+  const py = pivot[1] * lh;
   ctx.save();
   if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
   ctx.translate(x, y);

@@ -6,8 +6,17 @@ import { GameView } from './core/GameView';
 import { Input } from './core/Input';
 import { Loop } from './core/Loop';
 import { SceneManager } from './core/SceneManager';
+import type { Scene } from './core/SceneManager';
 import type { GameEvents } from './game/events';
 import { LoadingScene } from './game/scenes/LoadingScene';
+import { MenuScene } from './game/scenes/MenuScene';
+import { LevelSelectScene } from './game/scenes/LevelSelectScene';
+import { ResultScene } from './game/scenes/ResultScene';
+import { GameScene } from './game/scenes/GameScene';
+import { GalleryScene } from './game/scenes/GalleryScene';
+import { LEVELS } from './game/content';
+import { debugFromUrl } from './game/debug';
+import type { DebugShotConfig } from './game/debug';
 import { save } from './game/save';
 
 const stage = document.getElementById('stage');
@@ -24,6 +33,34 @@ const audio = new Audio();
 const data = save.load();
 audio.setSettings(data.audio);
 document.body.classList.toggle('high-contrast', data.highContrast);
+
+/** Deterministic screenshot/perf boot (never part of normal play). */
+function buildShotScene(shot: DebugShotConfig): Scene<GameEvents> {
+  switch (shot.scene) {
+    case 'menu':
+      return new MenuScene(shot.t);
+    case 'levelselect':
+      return new LevelSelectScene(shot.t);
+    case 'gallery':
+      return new GalleryScene(shot.galleryGroup, shot.t);
+    case 'result-win':
+      return new ResultScene(LEVELS[0]!, true, shot.stats ?? { kills: 42, sun: 825, time: 74 }, shot.t);
+    case 'result-lose':
+      return new ResultScene(LEVELS[0]!, false, shot.stats ?? { kills: 7, sun: 150, time: 41 }, shot.t);
+    case 'game': {
+      const level = LEVELS[Math.min(Math.max(shot.level, 0), LEVELS.length - 1)]!;
+      return new GameScene(level, shot.seed, {
+        fixedT: shot.t,
+        forcedTier: shot.tier,
+        reducedMotion: shot.reducedMotion,
+        plants: shot.plants,
+        zombies: shot.zombies,
+        wallnutHpFrac: shot.wallnutHpFrac,
+        cherryFuse: shot.cherryFuse,
+      });
+    }
+  }
+}
 
 const loop = new Loop(
   (dt) => sm.update(dt),
@@ -46,5 +83,11 @@ window.addEventListener('resize', () => {
 });
 
 // Gameplay-critical bundle loads before the menu can appear.
-sm.push(new LoadingScene());
+const shot = debugFromUrl();
+if (shot) {
+  document.body.classList.add('debug-shot');
+  if (shot.highContrast) document.body.classList.add('high-contrast');
+  if (shot.muted) audio.setMuted(true);
+}
+sm.push(shot ? new LoadingScene(buildShotScene(shot)) : new LoadingScene());
 loop.start();

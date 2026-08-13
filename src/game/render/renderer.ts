@@ -83,6 +83,21 @@ export function paintEntity(rc: RenderCtx, world: World, e: Entity): void {
   ctx.translate(tmp.x, tmp.y);
 
   if (play && rc.assets.getSprite(play.sprite)) {
+    // motion streaks behind projectiles
+    if ((r.kind === 'pea' || r.kind === 'pea-frozen') && rc.quality.streaks) {
+      const frozen = r.kind === 'pea-frozen';
+      ctx.strokeStyle = frozen ? 'rgba(160,225,255,0.5)' : 'rgba(150,230,110,0.4)';
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 3; i++) {
+        ctx.lineWidth = 3 - i;
+        ctx.globalAlpha = 0.4 - i * 0.11;
+        ctx.beginPath();
+        ctx.moveTo(-8 - i * 7, 0);
+        ctx.lineTo(-20 - i * 8, 0);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
     if (rc.quality.shadows && groundY > 0) {
       rc.battlefield.contactShadow(ctx, 0, groundY - 1, shadowWidth(r.kind), 0.26);
     }
@@ -91,7 +106,7 @@ export function paintEntity(rc: RenderCtx, world: World, e: Entity): void {
       scale: play.scale,
       flipX: play.flipX,
     });
-    if (r.kind === 'zombie') applyZombieOverlays(ctx, rc, world, e, groundY);
+    if (r.kind === 'zombie') applyZombieOverlays(ctx, rc, world, e, groundY, play.scale);
     ctx.restore();
     return;
   }
@@ -162,27 +177,30 @@ function applyZombieOverlays(
   world: World,
   e: Entity,
   groundY: number,
+  scale: number,
 ): void {
   const h = world.get<Health>(e, 'Health');
   const b = world.get<ZombieBrain>(e, 'ZombieBrain');
   const t = world.resources.time as number;
+  const headY = groundY - 66 * scale;
+  const r = 17 * scale;
   if (b && t < b.slowUntil) {
     // readable slow tint + ice rim (speed change is the primary signal)
     ctx.fillStyle = 'rgba(159,216,255,0.30)';
     ctx.beginPath();
-    ctx.ellipse(0, groundY - 44, 17, 24, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, headY + 2, r, r * 1.45, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = 'rgba(207,234,255,0.85)';
     ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.arc(0, groundY - 46, 9, Math.PI * 0.95, Math.PI * 1.55);
+    ctx.arc(0, headY, r * 0.62, Math.PI * 0.95, Math.PI * 1.55);
     ctx.stroke();
   }
   if (h && h.flash > 0) {
     ctx.globalAlpha = Math.min(0.6, h.flash * 5);
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.ellipse(0, groundY - 44, 15, 22, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, headY + 2, r * 0.95, r * 1.4, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
   }

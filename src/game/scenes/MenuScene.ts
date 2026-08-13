@@ -7,6 +7,7 @@ import { Animator } from '../anim/playback';
 import { drawSpriteFrame } from '../render/sprites';
 import { paintSunflower, paintWallnut } from '../render/painters';
 import { LevelSelectScene } from './LevelSelectScene';
+import { GalleryScene } from './GalleryScene';
 
 /**
  * Main menu: painted garden composition, layered title treatment, and an
@@ -20,6 +21,8 @@ export class MenuScene implements Scene<GameEvents> {
   private animator!: Animator;
   private lighting: LightingState = { warm: 0.35, alert: 0, flash: 0 };
   private t = 0;
+
+  constructor(private readonly debugT?: number) {}
 
   onEnter(ctx: SceneContext<GameEvents>): void {
     this.ctx = ctx;
@@ -92,13 +95,24 @@ export class MenuScene implements Scene<GameEvents> {
       save.write(data);
       document.body.classList.toggle('high-contrast', data.highContrast);
     });
-    settingsRow.append(sound, contrast);
+    const gallery = document.createElement('button');
+    gallery.className = 'btn secondary';
+    gallery.textContent = 'Art Gallery';
+    gallery.setAttribute('aria-label', 'Open the animation gallery');
+    gallery.addEventListener('click', () => ctx.sm.replaceFaded(new GalleryScene(), 300));
+    settingsRow.append(sound, contrast, gallery);
 
     root.append(titleWrap, play, how, help, settingsRow);
     uiInner.appendChild(root);
     this.root = root;
 
     ctx.audio.playMusic('menu');
+    if (this.debugT !== undefined) {
+      this.t = this.debugT;
+      this.animator.advance(-1, 'peashooter', 'idle', this.debugT, 1);
+      this.animator.advance(-2, 'zombie-basic', 'walk', this.debugT, 1);
+      this.animator.advance(-3, 'pea', 'spin', this.debugT, 1);
+    }
   }
 
   onExit(): void {
@@ -107,6 +121,7 @@ export class MenuScene implements Scene<GameEvents> {
   }
 
   update(dt: number): void {
+    if (this.debugT !== undefined) return;
     this.t += dt;
     this.animator.advance(-1, 'peashooter', 'idle', dt, 1);
     this.animator.advance(-2, 'zombie-basic', 'walk', dt, 1);

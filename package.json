@@ -10,7 +10,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "bake": "tsx scripts/bake-assets.ts",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "shots": "tsx scripts/screenshots.ts",
+    "perf": "tsx scripts/perf.ts"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^1.0.5",

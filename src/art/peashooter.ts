@@ -10,8 +10,8 @@ export const PEASHOOTER_H = 62;
 
 export interface PeashooterOpts {
   frozen?: boolean;
-  /** Clip being drawn: 'idle' | 'fire'. */
-  clip: 'idle' | 'fire';
+  /** Clip being drawn: 'idle' | 'fire' | 'hit'. */
+  clip: 'idle' | 'fire' | 'hit';
   /** Frame index inside the clip. */
   frame: number;
 }
@@ -23,17 +23,20 @@ function plantColors(o: PeashooterOpts): { body: string; shade: string; snout: s
 
 export function drawPeashooterFrame(ctx: CanvasRenderingContext2D, o: PeashooterOpts): void {
   const c = plantColors(o);
-  const r = frameRng(1100 + (o.clip === 'fire' ? 200 : 0) + o.frame * 7);
+  const r = frameRng(1100 + (o.clip === 'fire' ? 200 : o.clip === 'hit' ? 400 : 0) + o.frame * 7);
   const breathe = o.clip === 'idle' ? 1 + Math.sin((o.frame / 5) * Math.PI * 2) * 0.025 : 1;
   const blink = o.clip === 'idle' && o.frame === 3;
   const fire = o.clip === 'fire';
+  const hit = o.clip === 'hit';
   const recoil = fire ? (o.frame === 0 ? 2.5 : o.frame === 1 ? -6 : -1.5) : 0;
   const mouthOpen = fire ? (o.frame === 0 ? 1 : o.frame === 1 ? 0.35 : 0.6) : 0.55;
   const leafSway = o.clip === 'idle' ? Math.sin((o.frame / 5) * Math.PI * 2) * 0.35 : -0.15;
+  // bite squash: compress down, bulge out, recover
+  const squash = hit ? [0.88, 0.95][Math.min(o.frame, 1)]! : 1;
 
   ctx.save();
   ctx.translate(0, 4);
-  ctx.scale(breathe, 1 / breathe);
+  ctx.scale(breathe * (2 - squash), (1 / breathe) * squash);
 
   // ---- stem + leaves (counter-motion) ----
   ctx.strokeStyle = c.shade;
@@ -137,19 +140,41 @@ export function drawPeashooterFrame(ctx: CanvasRenderingContext2D, o: Peashooter
   ctx.fill();
   ctx.restore();
 
-  // frozen crystals
+  // frozen crystals + icicle spikes (distinct icy silhouette)
   if (o.frozen) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.lineWidth = 1.3;
+    // hanging icicles under the snout
+    ctx.fillStyle = 'rgba(230,248,255,0.95)';
+    for (const [ix, iy, il] of [[8, -7, 7], [16, -6, 5], [22, -8, 8]] as const) {
+      ctx.beginPath();
+      ctx.moveTo(ix - 2.6, iy);
+      ctx.lineTo(ix, iy + il);
+      ctx.lineTo(ix + 2.6, iy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(90,150,190,0.7)';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    }
+    // crystal clusters on pod + stem
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
     ctx.moveTo(-12, -30);
-    ctx.lineTo(-16, -36);
-    ctx.moveTo(-14, -32);
-    ctx.lineTo(-9, -34);
-    ctx.moveTo(12, -8);
-    ctx.lineTo(17, -12);
-    ctx.moveTo(14, -10);
-    ctx.lineTo(10, -13);
+    ctx.lineTo(-17, -37);
+    ctx.moveTo(-14, -33);
+    ctx.lineTo(-8, -35);
+    ctx.moveTo(-12, -33);
+    ctx.lineTo(-13, -28);
+    ctx.moveTo(10, -26);
+    ctx.lineTo(15, -31);
+    ctx.moveTo(12, -27);
+    ctx.lineTo(8, -30);
+    ctx.stroke();
+    // frost cap on the pod
+    ctx.strokeStyle = 'rgba(230,248,255,0.8)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -16, 15.5, Math.PI * 1.05, Math.PI * 1.5);
     ctx.stroke();
   }
   ctx.restore();

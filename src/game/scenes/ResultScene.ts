@@ -35,6 +35,7 @@ export class ResultScene implements Scene<GameEvents> {
     private readonly level: LevelDef,
     private readonly won: boolean,
     private readonly stats: LevelStats,
+    private readonly debugT?: number,
   ) {}
 
   onEnter(ctx: SceneContext<GameEvents>): void {
@@ -122,6 +123,17 @@ export class ResultScene implements Scene<GameEvents> {
   }
 
   update(dt: number): void {
+    if (this.debugT !== undefined) {
+      this.t = this.debugT;
+      this.display.kills = this.stats.kills;
+      this.display.sun = this.stats.sun;
+      this.display.time = this.stats.time;
+      this.syncCounts();
+      this.animator.advance(-1, 'peashooter', 'idle', this.debugT, 1);
+      this.animator.advance(-2, 'peashooter', 'idle', this.debugT, 1);
+      this.animator.advance(-3, 'zombie-basic', 'walk', this.debugT, 1);
+      return;
+    }
     this.t += dt;
     // results count upward over ~0.9 s
     const p = Math.min(1, this.t / 0.9);
@@ -129,17 +141,20 @@ export class ResultScene implements Scene<GameEvents> {
     this.display.kills = Math.round(this.stats.kills * ease);
     this.display.sun = Math.round(this.stats.sun * ease);
     this.display.time = Math.round(this.stats.time * ease);
-    if (this.counts) {
-      const mm = Math.floor(this.display.time / 60);
-      const ss = String(this.display.time % 60).padStart(2, '0');
-      this.counts.kills.textContent = String(this.display.kills);
-      this.counts.sun.textContent = String(this.display.sun);
-      this.counts.time.textContent = mm + ':' + ss;
-    }
+    this.syncCounts();
     // celebration animation clocks
     this.animator.advance(-1, 'peashooter', 'idle', dt, 1);
     this.animator.advance(-2, 'peashooter', 'idle', dt, 1);
     this.animator.advance(-3, 'zombie-basic', 'walk', dt, 1);
+  }
+
+  private syncCounts(): void {
+    if (!this.counts) return;
+    const mm = Math.floor(this.display.time / 60);
+    const ss = String(this.display.time % 60).padStart(2, '0');
+    this.counts.kills.textContent = String(this.display.kills);
+    this.counts.sun.textContent = String(this.display.sun);
+    this.counts.time.textContent = mm + ':' + ss;
   }
 
   render(_alpha: number): void {

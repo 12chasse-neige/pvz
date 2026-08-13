@@ -18,6 +18,8 @@ export class LoadingScene implements Scene<GameEvents> {
   private label!: HTMLDivElement;
   private busy = false;
 
+  constructor(private readonly next?: Scene<GameEvents>) {}
+
   onEnter(ctx: SceneContext<GameEvents>): void {
     this.ctx = ctx;
     this.battlefield = new Battlefield(ctx.assets);
@@ -68,7 +70,7 @@ export class LoadingScene implements Scene<GameEvents> {
     }
     this.battlefield.refreshFromAssets();
     this.setProgress({ loaded: 1, total: 1, stage: 'done', failed: [] });
-    this.ctx.sm.replaceFaded(new MenuScene(), 320);
+    this.ctx.sm.replaceFaded(this.next ?? new MenuScene(), 320);
   }
 
   private setProgress(p: LoadProgress): void {

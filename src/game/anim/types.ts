@@ -69,7 +69,9 @@ export interface SpriteAtlasDef {
   atlas: string;
   /** Normalized pivot (ground contact), e.g. [0.5, 0.92]. */
   pivot: [number, number];
-  /** Logical (1×) size of a frame, for layout/fallback. */
+  /** Optional per-frame pivots (frames may be individually measured). */
+  pivots?: [number, number][];
+  /** Logical (1×) size of the largest frame, for layout/fallback. */
   logicalW: number;
   logicalH: number;
   /** Atlas-pixel rectangles per frame index. */

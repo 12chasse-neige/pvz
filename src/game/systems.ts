@@ -258,6 +258,7 @@ function sysProjectiles(world: World, dt: number): void {
           zb.slowUntil = Math.max(zb.slowUntil, t + pr.slowDur);
         }
         burst(world, p.x, p.y, pr.kind === 'frozen' ? '#9fdcff' : '#a8e860', 4, 70);
+        events(world).emit('projectile-hit', { kind: pr.kind, x: p.x, y: p.y });
         world.destroy(e);
         break;
       }

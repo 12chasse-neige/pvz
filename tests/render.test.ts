@@ -6,7 +6,7 @@ import { Animator } from '../src/game/anim/playback';
 import { resolvePlay } from '../src/game/anim/resolver';
 import type { AtlasManifest } from '../src/game/anim/types';
 import type { GameEvents } from '../src/game/events';
-import { makeMower, makeProjectile, makeZombie } from '../src/game/factory';
+import { makeMower, makePlant, makeProjectile, makeZombie } from '../src/game/factory';
 import { CameraState, seededNoise } from '../src/game/render/camera';
 import { CosmeticFx } from '../src/game/render/fx';
 import { PREV_POSITION, interpPos, resetHistory, snapshotHistory } from '../src/game/render/history';
@@ -234,6 +234,60 @@ describe('animation state resolver', () => {
     world.get<{ active: boolean }>(mower, 'MowerC')!.active = true;
     play = resolvePlay(world, mower)!;
     expect(play.clip).toBe('run');
+  });
+
+  it('selects damage tiers from health fractions and urgency from fuses', () => {
+    const setup = setupWorld(level, 5, new EventBus<GameEvents>());
+    const world = setup.world;
+
+    // wall-nut tiers
+    const nut = makePlant(world, 'wallnut', 2, 2);
+    world.update(1 / 60);
+    const nutHp = world.get<{ hp: number; max: number }>(nut, 'Health')!;
+    expect(resolvePlay(world, nut)!.clip).toBe('full');
+    nutHp.hp = nutHp.max * 0.5;
+    expect(resolvePlay(world, nut)!.clip).toBe('cracked');
+    nutHp.hp = nutHp.max * 0.2;
+    expect(resolvePlay(world, nut)!.clip).toBe('broken');
+    nutHp.hp = nutHp.max;
+    world.get<{ flash: number }>(nut, 'Health')!.flash = 0.1;
+    expect(resolvePlay(world, nut)!.clip).toBe('squash');
+
+    // cherry urgency
+    const cherry = makePlant(world, 'cherrybomb', 3, 2);
+    world.update(1 / 60);
+    const fuse = world.get<{ time: number; maxTime: number }>(cherry, 'Fuse')!;
+    expect(resolvePlay(world, cherry)!.clip).toBe('idle');
+    fuse.time = fuse.maxTime * 0.5;
+    expect(resolvePlay(world, cherry)!.clip).toBe('urgent');
+    fuse.time = fuse.maxTime * 0.2;
+    expect(resolvePlay(world, cherry)!.clip).toBe('preflash');
+
+    // sunflower produce window
+    const flower = makePlant(world, 'sunflower', 1, 1);
+    world.update(1 / 60);
+    const prod = world.get<{ cooldown: number; interval: number }>(flower, 'Producer')!;
+    expect(resolvePlay(world, flower)!.clip).toBe('idle');
+    prod.cooldown = prod.interval * 0.2;
+    expect(resolvePlay(world, flower)!.clip).toBe('produce');
+
+    // armored zombie damage tiers
+    const cone = makeZombie(world, 'cone', 1, setup.rng);
+    world.update(1 / 60);
+    const coneHp = world.get<{ hp: number; max: number }>(cone, 'Health')!;
+    expect(resolvePlay(world, cone)!.clip).toBe('walk');
+    coneHp.hp = coneHp.max * 0.5;
+    expect(resolvePlay(world, cone)!.clip).toBe('walk-dmg1');
+    coneHp.hp = coneHp.max * 0.2;
+    expect(resolvePlay(world, cone)!.clip).toBe('walk-dmg2');
+    world.get<{ eating: boolean }>(cone, 'ZombieBrain')!.eating = true;
+    expect(resolvePlay(world, cone)!.clip).toBe('eat-dmg2');
+
+    // runner keeps a single walk clip regardless of damage
+    const runner = makeZombie(world, 'runner', 2, setup.rng);
+    world.update(1 / 60);
+    world.get<{ hp: number; max: number }>(runner, 'Health')!.hp = 1;
+    expect(resolvePlay(world, runner)!.clip).toBe('walk');
   });
 });
 

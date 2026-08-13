@@ -15,6 +15,8 @@ pnpm test       # unit + headless simulation tests
 pnpm build      # typecheck + production bundle in dist/
 pnpm preview    # serve the production bundle
 pnpm smoke      # headless-browser boot smoke test (needs Chromium, see below)
+pnpm shots      # deterministic screenshot suite (24 scenes + pixel determinism check)
+pnpm perf       # performance acceptance scenes (ordinary / stress / adaptive quality)
 ```
 
 Smoke-test browser (one-time):
@@ -47,8 +49,8 @@ pnpm smoke
 | Simulation | `src/game/systems.ts` | ordered, headless systems (unchanged balance/collision/wave timing) |
 | Entities | `src/game/factory.ts` | component assembly (`makePlant`, `makeZombie`, `makeSun`, …) |
 | World bootstrap | `src/game/setup.ts` | `setupWorld(level, seed, events)` — shared by live play and tests |
-| Source art | `src/art/` | editable, procedurally-painted artwork (palette, characters, environment, UI) — doubles as the runtime fallback painters |
-| Asset pipeline | `scripts/bake-assets.ts` | renders every frame at 2×, measures exact bounds/pivots, packs atlases, writes `public/assets/*.png` + typed `manifest.json` |
+| Source art | `src/art/` | editable, procedurally-painted artwork (palette, five plants, five zombie variants, effects, environment, UI) — doubles as the runtime fallback painters |
+| Asset pipeline | `scripts/bake-assets.ts` | renders every frame at 2×, measures exact per-clip bounds/pivots, packs WebP atlases, writes `public/assets/*.webp` + typed `manifest.json` |
 | Animation | `src/game/anim/` | typed `SpriteAtlasDef`/`AnimationClip`/`AnimationFrame`/`RenderProfile`, clip playback with frame markers, ECS→animation-state resolver |
 | Rendering | `src/game/render/` | layered `Battlefield` (parallax, cloud shadows, cached gradients), sprite painter with contact shadows + status overlays, trauma camera, cosmetic FX pool (capped particles, death actors, flyers), adaptive `QualityManager`, prev/current position interpolation |
 | UI | `src/game/ui/hud.ts` | DOM HUD: paper seed packets, painted tool icons, lawn-path wave bar, sun counter pop |
@@ -86,7 +88,17 @@ pnpm smoke
   slow, cherry AoE, mowers, sunflower production, win/lose, determinism.
 - `tests/painters.test.ts` — every render branch executed against a mock canvas.
 - `tests/render.test.ts` — manifest validation, asset loading/retry,
-  animation playback + markers, state resolver, interpolation history,
-  quality hysteresis, particle caps, camera determinism, save migration.
+  animation playback + markers, state resolver (damage tiers, urgency,
+  produce window), interpolation history, quality hysteresis, particle
+  caps, camera determinism, save migration.
 - `pnpm smoke` — boot smoke test in headless Chromium (screenshots to
   `.artifacts/`).
+- `pnpm shots` — deterministic screenshots: menu, level select, gallery,
+  full HUD, pause, victory, defeat, empty/planted lawn, major wave,
+  explosion, frozen zombie, damaged Wall-nut, mower, dense combat, tablet
+  viewport, reduced motion, high contrast, muted state, every quality tier.
+  Re-takes a sample and asserts byte-identical output (`.artifacts/shots/`).
+- `pnpm perf` — performance acceptance: no long task > 50 ms in ordinary
+  play, bounded cosmetic growth and no repeated asset decoding in the
+  stress scene, and quality-tier demotion + hysteresis recovery verified
+  live in the browser (`.artifacts/perf-report.json`).
