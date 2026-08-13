@@ -24,6 +24,8 @@ interface Shot {
   name: string;
   query: string;
   viewport: { width: number; height: number };
+  /** Emulate a touch device (coarse pointer → tablet HUD layout). */
+  touch?: boolean;
   /** Optional extra actions after the scene is ready (e.g. open pause). */
   actions?: (page: Page) => Promise<void>;
   /** Wait after ready (fade settle). */
@@ -55,6 +57,7 @@ const denseZombies = JSON.stringify(
 const SHOTS: Shot[] = [
   { name: 'menu', query: '?shot=1&scene=menu&t=1.6&seed=42', viewport: { width: 1280, height: 960 } },
   { name: 'menu-tablet', query: '?shot=1&scene=menu&t=2.2&seed=7', viewport: { width: 1024, height: 768 } },
+  { name: 'menu-tablet-touch', query: '?shot=1&scene=menu&t=2.2&seed=7', viewport: { width: 1024, height: 768 }, touch: true },
   { name: 'levelselect', query: '?shot=1&scene=levelselect&t=1.2', viewport: { width: 1280, height: 960 } },
   { name: 'levelselect-tablet', query: '?shot=1&scene=levelselect&t=1.2', viewport: { width: 1024, height: 768 } },
   { name: 'gallery-plants', query: '?shot=1&scene=gallery&galleryGroup=0&t=0.8', viewport: { width: 1280, height: 960 } },
@@ -112,6 +115,12 @@ const SHOTS: Shot[] = [
       await page.waitForSelector('.shed-panel', { timeout: 3000 });
     },
     settleMs: 500,
+  },
+  {
+    name: 'game-tablet-touch',
+    query: '?shot=1&scene=game&level=0&seed=42&t=8&plants=' + encodeURIComponent(plantsJSON),
+    viewport: { width: 1024, height: 768 },
+    touch: true,
   },
   {
     name: 'game-tier-low',
@@ -185,14 +194,32 @@ async function main(): Promise<void> {
     page.on('console', (m) => {
       if (m.type() === 'error') errors.push(m.text());
     });
+    const touchContext = await browser.newContext({ hasTouch: true });
+    const touchPage = await touchContext.newPage();
+    touchPage.on('pageerror', (e) => errors.push(String(e)));
+    touchPage.on('console', (m) => {
+      if (m.type() === 'error') errors.push(m.text());
+    });
 
     const hashOf = (buf: Buffer): string => createHash('sha256').update(buf).digest('hex').slice(0, 12);
     for (const shot of SHOTS) {
-      const buf = await take(page, shot);
+      const buf = await take(shot.touch ? touchPage : page, shot);
       const { writeFileSync } = await import('node:fs');
       writeFileSync(join(ART, shot.name + '.png'), buf);
       console.log('shot', shot.name.padEnd(22), buf.length + ' bytes', hashOf(buf));
     }
+    // touch layout actually activated on touch shots
+    for (const name of ['menu-tablet-touch', 'game-tablet-touch']) {
+      const shot = SHOTS.find((s) => s.name === name)!;
+      await touchPage.goto(URL + shot.query, { waitUntil: 'load' });
+      await touchPage.waitForSelector('.hud, .menu-title', { timeout: 20000 });
+      const cls = await touchPage.evaluate('document.body.className');
+      if (!cls.includes('touch-mode')) {
+        console.error('FAIL: touch-mode class missing on touch device for', name);
+        process.exitCode = 1;
+      }
+    }
+    console.log('touch-mode layout verified on touch device');
 
     // Determinism check: re-take a sample and compare bytes.
     console.log('determinism re-take…');

@@ -51,12 +51,16 @@ export class MenuScene implements Scene<GameEvents> {
     play.className = 'btn btn-big';
     play.textContent = 'Play';
     play.setAttribute('aria-label', 'Play: choose a level');
-    play.addEventListener('click', () => ctx.sm.replaceFaded(new LevelSelectScene(), 320));
+    play.addEventListener('click', () => {
+      ctx.audio.uiClick();
+      ctx.sm.replaceFaded(new LevelSelectScene(), 320);
+    });
 
     const how = document.createElement('button');
     how.className = 'btn secondary';
     how.textContent = 'How to Play';
     how.addEventListener('click', () => {
+      ctx.audio.uiClick();
       help.style.display = help.style.display === 'none' ? 'block' : 'none';
     });
 
@@ -80,6 +84,7 @@ export class MenuScene implements Scene<GameEvents> {
     };
     updateSound();
     sound.addEventListener('click', () => {
+      ctx.audio.uiClick();
       const data = save.load();
       data.audio.muted = !data.audio.muted;
       save.write(data);
@@ -90,6 +95,7 @@ export class MenuScene implements Scene<GameEvents> {
     contrast.className = 'btn secondary';
     contrast.textContent = 'High Contrast';
     contrast.addEventListener('click', () => {
+      ctx.audio.uiClick();
       const data = save.load();
       data.highContrast = !data.highContrast;
       save.write(data);
@@ -99,7 +105,10 @@ export class MenuScene implements Scene<GameEvents> {
     gallery.className = 'btn secondary';
     gallery.textContent = 'Art Gallery';
     gallery.setAttribute('aria-label', 'Open the animation gallery');
-    gallery.addEventListener('click', () => ctx.sm.replaceFaded(new GalleryScene(), 300));
+    gallery.addEventListener('click', () => {
+      ctx.audio.uiClick();
+      ctx.sm.replaceFaded(new GalleryScene(), 300);
+    });
     settingsRow.append(sound, contrast, gallery);
 
     root.append(titleWrap, play, how, help, settingsRow);

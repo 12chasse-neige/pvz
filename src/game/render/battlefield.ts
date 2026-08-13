@@ -32,6 +32,22 @@ interface Mote {
   phase: number;
 }
 
+interface Insect {
+  y: number;
+  speed: number;
+  flap: number;
+  phase: number;
+  hue: number;
+  size: number;
+}
+
+interface Blade {
+  x: number;
+  h: number;
+  phase: number;
+  tilt: number;
+}
+
 export class Battlefield {
   private readonly assets: AssetManager;
   private layers = new Map<string, Layer>();
@@ -40,6 +56,9 @@ export class Battlefield {
   private vignette: HTMLCanvasElement;
   private alertFrame: HTMLCanvasElement;
   private motes: Mote[] = [];
+  private insects: Insect[] = [];
+  private blades: Blade[] = [];
+  private silhouetteCache = new Map<string, HTMLCanvasElement>();
   constructor(assets: AssetManager) {
     this.assets = assets;
     this.shadowBlob = buildBlob('rgba(30,45,20,1)', 0.5);
@@ -55,6 +74,26 @@ export class Battlefield {
         vx: r.range(2, 6),
         vy: r.range(-4, -1.5),
         phase: r.range(0, Math.PI * 2),
+      });
+    }
+    // ambient butterflies drifting over the lawn
+    for (let i = 0; i < 3; i++) {
+      this.insects.push({
+        y: r.range(110, 420),
+        speed: r.range(12, 22) * (i % 2 === 0 ? 1 : -1),
+        flap: r.range(7, 10),
+        phase: r.range(0, Math.PI * 2),
+        hue: i % 2 === 0 ? 40 : 330,
+        size: r.range(0.8, 1.2),
+      });
+    }
+    // foreground grass blades for the wind sway
+    for (let i = 0; i < 16; i++) {
+      this.blades.push({
+        x: 44 + r.range(0, LOGICAL_W - 88),
+        h: r.range(14, 26),
+        phase: r.range(0, Math.PI * 2),
+        tilt: r.range(-0.2, 0.2),
       });
     }
   }
@@ -129,14 +168,104 @@ export class Battlefield {
           ctx.globalAlpha = 1;
         }
       }
+      // ambient butterflies
+      if (density > 0) {
+        for (let i = 0; i < this.insects.length; i++) {
+          const b = this.insects[i]!;
+          const cx = LOGICAL_W - 40 + Math.sin(t * 0.5 + b.phase) * 30 - ((t * b.speed + i * 260) % (LOGICAL_W + 160)) + 80;
+          const cy = b.y + Math.sin(t * 0.9 + b.phase) * 22;
+          const flap = Math.abs(Math.sin(t * b.flap + b.phase));
+          ctx.globalAlpha = 0.5 * density;
+          ctx.fillStyle = b.hue === 40 ? '#ffd84d' : '#ff8fa0';
+          for (const side of [-1, 1] as const) {
+            ctx.save();
+            ctx.translate(cx + side * 2, cy);
+            ctx.rotate(side * (0.5 + flap * 0.7));
+            ctx.beginPath();
+            ctx.ellipse(side * 2.6, 0, 2.6 * b.size, 2.1 * b.size, side * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+          ctx.fillStyle = 'rgba(60,40,20,0.8)';
+          ctx.beginPath();
+          ctx.ellipse(cx, cy, 0.8 * b.size, 2 * b.size, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
     }
   }
 
-  drawFront(ctx: CanvasRenderingContext2D, _t: number): void {
+  drawFront(ctx: CanvasRenderingContext2D, t: number): void {
     const foliage = this.assets.getImage('env-foliage')
       ? (this.assets.getImage('env-foliage') as unknown as CanvasImageSource)
       : this.fallback('env-foliage', drawFoliage);
     ctx.drawImage(foliage, 0, 0, LOGICAL_W, LOGICAL_H);
+    // wind-swayed foreground grass blades along the bottom edge
+    ctx.strokeStyle = '#5f9e46';
+    ctx.lineCap = 'round';
+    for (const blade of this.blades) {
+      const sway = Math.sin(t * 1.3 + blade.phase) * 3.2;
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.75;
+      ctx.beginPath();
+      ctx.moveTo(blade.x, LOGICAL_H - 6);
+      ctx.quadraticCurveTo(blade.x + sway * 0.4 + blade.tilt * blade.h, LOGICAL_H - 6 - blade.h * 0.6, blade.x + sway + blade.tilt * blade.h * 1.4, LOGICAL_H - 6 - blade.h);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /**
+   * Cached dark silhouette of a sprite frame (major-wave distant figures).
+   * Built once per sprite/frame/scale; bounded cache.
+   */
+  silhouette(sprite: string, frame: number, scale: number): HTMLCanvasElement | null {
+    const key = sprite + ':' + frame + ':' + scale.toFixed(2);
+    let c = this.silhouetteCache.get(key);
+    if (c) return c;
+    const def = this.assets.getSprite(sprite);
+    const img = def ? this.assets.getImage(def.atlas) : undefined;
+    const rect = def?.frames[frame];
+    if (!def || !img || !rect) return null;
+    const manifestScale = this.assets.getManifest()?.scale ?? 2;
+    const lw = Math.ceil((rect.w / manifestScale) * scale);
+    const lh = Math.ceil((rect.h / manifestScale) * scale);
+    c = document.createElement('canvas');
+    c.width = Math.max(2, lw);
+    c.height = Math.max(2, lh);
+    const cx = c.getContext('2d')!;
+    const pivot = def.pivots?.[frame] ?? def.pivot;
+    const dw = (rect.w / manifestScale) * scale;
+    const dh = (rect.h / manifestScale) * scale;
+    const px = pivot[0] * dw;
+    const py = pivot[1] * dh;
+    cx.translate(c.width / 2, c.height);
+    cx.drawImage(img as unknown as CanvasImageSource, rect.x, rect.y, rect.w, rect.h, -px, -py, dw, dh);
+    cx.setTransform(1, 0, 0, 1, 0, 0);
+    cx.globalCompositeOperation = 'source-in';
+    cx.fillStyle = '#232b1e';
+    cx.fillRect(0, 0, c.width, c.height);
+    if (this.silhouetteCache.size > 48) this.silhouetteCache.clear();
+    this.silhouetteCache.set(key, c);
+    return c;
+  }
+
+  /** Distant zombie silhouettes marching at the lawn edge (major waves). */
+  drawWaveSilhouettes(ctx: CanvasRenderingContext2D, t: number, intensity: number): void {
+    if (intensity <= 0.02) return;
+    const variants = ['zombie-basic', 'zombie-cone', 'zombie-flag', 'zombie-basic', 'zombie-bucket'] as const;
+    for (let i = 0; i < 5; i++) {
+      const drift = (t * 13 + i * 43) % 120;
+      const x = LOGICAL_W - 18 - drift;
+      const y = 130 + i * 100 + 6;
+      const frame = (i * 2 + Math.floor(t * 2)) % 8;
+      const c = this.silhouette(variants[i]!, frame, 0.4);
+      if (!c) continue;
+      ctx.globalAlpha = Math.min(0.9, intensity * 0.9) * (0.5 + 0.5 * Math.sin(t * 3 + i));
+      ctx.drawImage(c, x - c.width / 2, y - c.height);
+      ctx.globalAlpha = 1;
+    }
   }
 
   /** Screen-space lighting pass: vignette, warm sweep, alert, flash. */

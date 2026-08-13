@@ -91,6 +91,8 @@ export class GameScene implements Scene<GameEvents> {
   private debugFrozen = false;
   private debugAlpha = 1;
   private debugPending = false;
+  /** Major-wave presence 0..1 — drives distant silhouettes + intensity. */
+  private wavePresence = 0;
   private readonly debugRng: Rng;
   private stats = { fps: 0, particles: 0, actors: 0, entities: 0, tier: 'high' };
 
@@ -184,6 +186,7 @@ export class GameScene implements Scene<GameEvents> {
         if (w.flag) {
           this.hud.showBanner('A huge wave of zombies is approaching!', 'wave');
           this.lighting.alert = 0.55;
+          this.wavePresence = 1;
           this.timers.after(2.4, () => (this.lighting.alert = 0));
           ctx.audio.waveHorn();
           ctx.audio.setIntensity(1);
@@ -200,6 +203,7 @@ export class GameScene implements Scene<GameEvents> {
     this.unsubs.push(
       events.on('projectile-hit', (p) => {
         if (p.kind === 'frozen') {
+          ctx.audio.armorHit();
           // ice shards + breath vapor on frozen hits
           this.fx.burst(p.x, p.y, '#cfeaff', this.quality.scaleParticles(6), 130, 'shard', 1, 90);
           for (let i = 0; i < 3; i++) {
@@ -217,8 +221,8 @@ export class GameScene implements Scene<GameEvents> {
               priority: 0,
             });
           }
-          ctx.audio.armorHit();
         } else {
+          ctx.audio.impact();
           this.fx.burst(p.x, p.y, '#a8e860', this.quality.scaleParticles(5), 120, 'dot', 1, 140);
           this.fx.burst(p.x, p.y, '#5f9e46', this.quality.scaleParticles(3), 60, 'dot', 0, 200);
         }
@@ -300,6 +304,7 @@ export class GameScene implements Scene<GameEvents> {
     this.camera.update(dt);
     this.lighting.warm = Math.max(0, this.lighting.warm - dt * 0.6);
     this.lighting.flash = Math.max(0, this.lighting.flash - dt * 2.2);
+    this.wavePresence = Math.max(0, this.wavePresence - dt * 0.16);
 
     // sun display: spends update instantly, gains fly to the counter first
     if (this.state.sun < this.displaySun) {
@@ -391,6 +396,7 @@ export class GameScene implements Scene<GameEvents> {
         break;
       case 'footstep':
         this.fx.burst(p.x, p.y + groundY - 2, '#cbbf9a', 1, 22, 'dot', 0, 120);
+        this.ctx.audio.footstep();
         break;
       case 'bite': {
         this.ctx.audio.chomp();
@@ -458,6 +464,7 @@ export class GameScene implements Scene<GameEvents> {
 
     const t = this.world.resources.time as number;
     this.battlefield.drawBack(ctx, t, this.quality.profile);
+    this.battlefield.drawWaveSilhouettes(ctx, t, this.wavePresence);
     this.drawHover(ctx);
     const ents = this.world.query('Renderable', 'Position');
     ents.sort((a, b) => {
@@ -470,12 +477,6 @@ export class GameScene implements Scene<GameEvents> {
     for (const e of ents) paintEntity(this.rctx, this.world, e);
     this.fx.render(ctx, this.animator, this.ctx.assets);
     this.drawFloaters(ctx);
-    this.battlefield.drawFront(ctx, t);
-    ctx.restore();
-
-    // screen-space lighting pass
-    this.battlefield.drawLighting(ctx, this.lighting);
-
     if (
       (this.state.selected || this.state.shovel) &&
       this.hover &&
@@ -483,6 +484,11 @@ export class GameScene implements Scene<GameEvents> {
     ) {
       this.drawGhost(ctx);
     }
+    this.battlefield.drawFront(ctx, t);
+    ctx.restore();
+
+    // screen-space lighting pass
+    this.battlefield.drawLighting(ctx, this.lighting);
   }
 
   onPauseChange(paused: boolean): void {

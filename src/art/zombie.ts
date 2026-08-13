@@ -230,8 +230,18 @@ export function drawZombieFrame(ctx: CanvasRenderingContext2D, o: ZombieDrawOpts
   }
   ctx.restore();
 
-  // eyes
+  // eyes (blink on a fixed frame of the walk cycle)
+  const blink = !eat && o.frame === 3;
   for (const ex of [-6, 2] as const) {
+    if (blink) {
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(ex - 2.4, -4.4);
+      ctx.lineTo(ex + 1.4, -3.4);
+      ctx.stroke();
+      continue;
+    }
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
     ctx.ellipse(ex, -4, 2.6, 2.9, 0, 0, TAU);

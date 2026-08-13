@@ -33,6 +33,10 @@ const audio = new Audio();
 const data = save.load();
 audio.setSettings(data.audio);
 document.body.classList.toggle('high-contrast', data.highContrast);
+// Tablet / touch layout: larger targets, condensed-but-equivalent HUD.
+if (window.matchMedia('(pointer: coarse)').matches) {
+  document.body.classList.add('touch-mode');
+}
 
 /** Deterministic screenshot/perf boot (never part of normal play). */
 function buildShotScene(shot: DebugShotConfig): Scene<GameEvents> {

@@ -106,7 +106,26 @@ export function paintEntity(rc: RenderCtx, world: World, e: Entity): void {
       scale: play.scale,
       flipX: play.flipX,
     });
+    if (r.kind === 'peashooter' || r.kind === 'snowpea') {
+      applyPlantOverlays(ctx, rc, world, e, groundY, frame);
+    }
     if (r.kind === 'zombie') applyZombieOverlays(ctx, rc, world, e, groundY, play.scale);
+    if (r.kind === 'snowpea' && rc.quality.ambient) {
+      // drifting cold vapor (deterministic per entity)
+      const t = world.resources.time as number;
+      const ph = ((e * 0.61803398875) % 1);
+      for (let i = 0; i < 2; i++) {
+        const cyc = (t * 0.42 + ph + i * 0.5) % 1;
+        const vx = -10 + Math.sin(t * 1.1 + ph * 6.28 + i * 2.4) * 6;
+        const vy = -26 - cyc * 26;
+        ctx.globalAlpha = 0.26 * (1 - cyc);
+        ctx.fillStyle = '#eef8ff';
+        ctx.beginPath();
+        ctx.arc(vx, vy, 2.4 + cyc * 3.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
     ctx.restore();
     return;
   }
@@ -168,6 +187,64 @@ export function paintEntity(rc: RenderCtx, world: World, e: Entity): void {
     }
   }
   ctx.restore();
+}
+
+/**
+ * Peashooter/Snow Pea overlays: eye tracking toward the nearest zombie in
+ * the row, plus a restrained white hit-flash when the plant is bitten.
+ */
+function applyPlantOverlays(
+  ctx: CanvasRenderingContext2D,
+  rc: RenderCtx,
+  world: World,
+  e: Entity,
+  groundY: number,
+  frame: number,
+): void {
+  const h = world.get<Health>(e, 'Health');
+  const info = world.get<{ row: number }>(e, 'PlantInfo');
+  const p = world.get<Position>(e, 'Position');
+  // ---- hit flash (bites) ----
+  if (h && h.flash > 0) {
+    ctx.globalAlpha = Math.min(0.5, h.flash * 4);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(2, groundY - 20, 20, 26, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+  // ---- eye tracking (skip the blink frame of the idle clip) ----
+  if (frame === 3) return;
+  let lookX = 1;
+  if (info && p) {
+    const buckets = world.resources.zombiesByRow as Entity[][];
+    const row = buckets[info.row] ?? [];
+    for (const z of row) {
+      const zp = world.get<Position>(z, 'Position');
+      if (zp && zp.x > p.x - 30) {
+        lookX = Math.max(-1.4, Math.min(1.4, (zp.x - p.x) / 90));
+        break;
+      }
+    }
+  }
+  const ex = 2 + lookX * 1.6;
+  const ey = groundY - 14.2;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(ex, ey, 4.9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(30,60,25,0.9)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.fillStyle = '#1c2c1c';
+  ctx.beginPath();
+  ctx.arc(ex + lookX * 1.1, ey + 0.2, 2.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath();
+  ctx.arc(ex + lookX * 1.1 - 0.7, ey - 0.5, 0.7, 0, Math.PI * 2);
+  ctx.fill();
+  void rc;
 }
 
 /** Hit flash + slow tint overlays for baked zombie sprites. */

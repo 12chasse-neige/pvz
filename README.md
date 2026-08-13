@@ -15,7 +15,7 @@ pnpm test       # unit + headless simulation tests
 pnpm build      # typecheck + production bundle in dist/
 pnpm preview    # serve the production bundle
 pnpm smoke      # headless-browser boot smoke test (needs Chromium, see below)
-pnpm shots      # deterministic screenshot suite (24 scenes + pixel determinism check)
+pnpm shots      # deterministic screenshot suite (26 scenes incl. touch tablet + pixel determinism check)
 pnpm perf       # performance acceptance scenes (ordinary / stress / adaptive quality)
 ```
 
@@ -95,9 +95,10 @@ pnpm smoke
   `.artifacts/`).
 - `pnpm shots` — deterministic screenshots: menu, level select, gallery,
   full HUD, pause, victory, defeat, empty/planted lawn, major wave,
-  explosion, frozen zombie, damaged Wall-nut, mower, dense combat, tablet
-  viewport, reduced motion, high contrast, muted state, every quality tier.
-  Re-takes a sample and asserts byte-identical output (`.artifacts/shots/`).
+  explosion, frozen zombie, damaged Wall-nut, mower, dense combat, desktop
+  + tablet + touch-tablet viewports, reduced motion, high contrast, muted
+  state, every quality tier. Re-takes a sample and asserts byte-identical
+  output (`.artifacts/shots/`).
 - `pnpm perf` — performance acceptance: no long task > 50 ms in ordinary
   play, bounded cosmetic growth and no repeated asset decoding in the
   stress scene, and quality-tier demotion + hysteresis recovery verified

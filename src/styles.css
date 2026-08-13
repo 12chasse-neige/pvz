@@ -40,6 +40,14 @@ button:focus-visible, input:focus-visible, .level-card:focus-visible {
   z-index: 60;
 }
 @keyframes fade-in { to { opacity: 1; } }
+/* scene entry scale easing (250–450 ms transitions) */
+.menu-screen, .overlay, .gallery-screen, .loading-screen {
+  animation: scene-in 0.32s ease-out;
+}
+@keyframes scene-in {
+  from { transform: scale(1.045); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
 
 /* ---------- HUD (garden tool bar) ---------- */
 .hud {
@@ -261,6 +269,26 @@ button:focus-visible, input:focus-visible, .level-card:focus-visible {
   font-size: 13.5px; color: #e8f4d8; text-align: center; line-height: 1.7;
   max-width: 660px; background: rgba(10, 20, 12, 0.72);
   border-radius: 10px; padding: 12px 16px;
+}
+
+/* ---------- tablet / touch layout ---------- */
+body.touch-mode { -webkit-tap-highlight-color: transparent; }
+body.touch-mode button,
+body.touch-mode .level-card,
+body.touch-mode .option-row {
+  touch-action: manipulation;
+}
+body.touch-mode .hud { height: 88px; gap: 10px; }
+body.touch-mode .sun-counter { min-width: 112px; height: 56px; font-size: 27px; }
+body.touch-mode .seed-card { width: 70px; height: 70px; }
+body.touch-mode .seed-card canvas { width: 54px; height: 62px; }
+body.touch-mode .tool-btn { width: 58px; height: 58px; }
+body.touch-mode .progress { top: 88px; }
+body.touch-mode .banner { font-size: 34px; }
+/* very narrow stages: wrap the seed bank to a second row instead of shrinking */
+@media (max-width: 720px) {
+  body.touch-mode .hud { height: auto; flex-wrap: wrap; padding: 8px; }
+  body.touch-mode .progress { top: 164px; }
 }
 
 /* ---------- animation gallery ---------- */

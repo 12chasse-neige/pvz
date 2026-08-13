@@ -169,6 +169,15 @@ export function drawBlastFrame(ctx: CanvasRenderingContext2D, frame: number): vo
   ctx.beginPath();
   ctx.arc(0, 0, 46 * f, 0, Math.PI * 2);
   ctx.fill();
+  // expanding shockwave ring
+  if (frame >= 1) {
+    const ringR = (frame / 3) * 34;
+    ctx.strokeStyle = 'rgba(255,220,150,' + (0.9 - frame * 0.22).toFixed(2) + ')';
+    ctx.lineWidth = 3.5 - frame * 0.7;
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(6, ringR), 0, Math.PI * 2);
+    ctx.stroke();
+  }
   // jagged embers
   const r = frameRng(3300 + frame);
   ctx.fillStyle = 'rgba(255,150,60,0.9)';

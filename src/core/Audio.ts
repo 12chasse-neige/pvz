@@ -146,6 +146,7 @@ export class Audio {
   private scheduler = 0;
   private mowerOn = false;
   private mowerNoise: { stop: () => void } | null = null;
+  private lastFootstepAt = 0;
 
   get muted(): boolean {
     return this.settings.muted;
@@ -368,6 +369,20 @@ export class Audio {
   }
   mower(): void {
     this.noise(0.5, 0.2, 0, 800);
+  }
+  /** Soft footstep thud, globally throttled so hordes stay pleasant. */
+  footstep(): void {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    if (now - this.lastFootstepAt < 0.11) return;
+    this.lastFootstepAt = now;
+    this.noise(0.07, 0.05, 0, 700);
+    this.tone(this.vary(120), 0.06, 'sine', 0.1, 60);
+  }
+  /** Pea impact pop. */
+  impact(): void {
+    this.tone(this.vary(520), 0.05, 'triangle', 0.12, 240);
+    this.noise(0.04, 0.06, 0, 1600);
   }
   mowerStart(): void {
     this.ensure();

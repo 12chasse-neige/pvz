@@ -97,7 +97,10 @@ export class LevelSelectScene implements Scene<GameEvents> {
     back.className = 'btn secondary';
     back.textContent = 'Back';
     back.setAttribute('aria-label', 'Back to main menu');
-    back.addEventListener('click', () => ctx.sm.replaceFaded(new MenuScene(), 300));
+    back.addEventListener('click', () => {
+      ctx.audio.uiClick();
+      ctx.sm.replaceFaded(new MenuScene(), 300);
+    });
 
     root.append(title, grid, back);
     ctx.view.uiInner.appendChild(root);
