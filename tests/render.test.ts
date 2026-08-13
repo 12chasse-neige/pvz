@@ -11,7 +11,7 @@ import { CameraState, seededNoise } from '../src/game/render/camera';
 import { CosmeticFx } from '../src/game/render/fx';
 import { PREV_POSITION, interpPos, resetHistory, snapshotHistory } from '../src/game/render/history';
 import { initialTier, nextTier, PROMOTE_STREAK, DEMOTE_STREAK } from '../src/game/render/quality';
-import { save } from '../src/game/save';
+import { recordResult, save } from '../src/game/save';
 import { setupWorld } from '../src/game/setup';
 import type { LevelDef } from '../src/game/content';
 
@@ -397,5 +397,29 @@ describe('save settings persistence', () => {
     expect(reloaded.audio).toEqual(data.audio);
     expect(reloaded.highContrast).toBe(true);
     expect(reloaded.reducedMotion).toBe(true);
+  });
+});
+
+describe('progression persistence', () => {
+  it('unlocks the next level and keeps the best result', () => {
+    const store = new Map<string, string>();
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    let data = save.load();
+    data.unlocked = 1;
+    data.best = {};
+    save.write(data);
+    const after = recordResult(0, 5, 60);
+    expect(after.unlocked).toBe(2);
+    expect(after.best['day-1']).toEqual({ kills: 5, time: 60 });
+    // a worse run does not overwrite the best
+    const worse = recordResult(0, 2, 90);
+    expect(worse.best['day-1']).toEqual({ kills: 5, time: 60 });
+    // a better run does
+    const better = recordResult(0, 9, 55);
+    expect(better.best['day-1']).toEqual({ kills: 9, time: 55 });
   });
 });

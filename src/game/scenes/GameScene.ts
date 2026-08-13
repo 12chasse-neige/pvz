@@ -706,12 +706,16 @@ export class GameScene implements Scene<GameEvents> {
     resume.className = 'btn';
     resume.textContent = 'Resume';
     resume.setAttribute('aria-label', 'Resume game');
-    resume.addEventListener('click', () => this.ctx.sm.setPaused(false));
+    resume.addEventListener('click', () => {
+      this.ctx.audio.uiClick();
+      this.ctx.sm.setPaused(false);
+    });
     const restart = document.createElement('button');
     restart.className = 'btn secondary';
     restart.textContent = 'Restart';
     restart.setAttribute('aria-label', 'Restart level');
     restart.addEventListener('click', () => {
+      this.ctx.audio.uiClick();
       this.ctx.sm.setPaused(false);
       this.ctx.sm.replaceFaded(new GameScene(this.level, randomSeed()), 300);
     });
@@ -720,6 +724,7 @@ export class GameScene implements Scene<GameEvents> {
     quit.textContent = 'Main Menu';
     quit.setAttribute('aria-label', 'Return to main menu');
     quit.addEventListener('click', () => {
+      this.ctx.audio.uiClick();
       this.ctx.sm.setPaused(false);
       this.ctx.sm.replaceFaded(new MenuScene(), 300);
     });
