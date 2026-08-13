@@ -17,6 +17,7 @@ import {
 import type { Fuse, FxState, Health, MowerC, Particle, PlantInfo, Position, Producer, ProjectileC, RangedAttack, SunC, ZombieBrain, ZombieInfo } from './components';
 import type { GameEvents, LevelStats } from './events';
 import { burst, makeProjectile, makeSun, makeZombie } from './factory';
+import { snapshotHistory } from './render/history';
 import type { GameState } from './state';
 import type { LevelDef, PlantKind } from './content';
 import type { ScheduledSpawn } from './state';
@@ -30,6 +31,11 @@ const fx = (world: World): FxState => world.resources.fx as FxState;
 
 function buildStats(st: GameState): LevelStats {
   return { kills: st.kills, sun: st.sunCollected, time: Math.round(st.elapsed) };
+}
+
+/** Snapshot render history BEFORE any movement runs (cosmetic only). */
+function sysSnapshot(world: World): void {
+  snapshotHistory(world);
 }
 
 /** Advance the clock, recharge timers, decay shake/floaters, phase prepare->play. */
@@ -326,7 +332,7 @@ function sysHealth(world: World, dt: number): void {
       const pos = world.get<Position>(e, 'Position')!;
       burst(world, pos.x, pos.y, '#a9bd8c', 10, 110);
       burst(world, pos.x, pos.y - 18, '#6b5646', 6, 90);
-      events(world).emit('zombie-killed', { kind: zi.kind });
+      events(world).emit('zombie-killed', { kind: zi.kind, x: pos.x, y: pos.y });
       world.destroy(e);
       continue;
     }
@@ -351,6 +357,7 @@ function sysLose(world: World): void {
 
 /** Register every system in execution order. */
 export function registerSystems(world: World): void {
+  world.addSystem('snapshot', sysSnapshot);
   world.addSystem('clock', sysClock);
   world.addSystem('index', sysIndex);
   world.addSystem('wave', sysWave);

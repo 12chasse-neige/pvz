@@ -5,14 +5,22 @@ import { LAWN_LEFT, LAWN_W, MOWER_SPEED, MOWER_X, SUN_TTL, cellCenterX, cellCent
 import type { Particle } from './components';
 import { PLANTS, PROJECTILES, ZOMBIES } from './content';
 import type { PlantKind, ProjectileKind, ZombieKind } from './content';
+import { PREV_POSITION } from './render/history';
+
+/** Adds a Position plus an identically-initialized render history. */
+function place(world: World, e: Entity, x: number, y: number): void {
+  world.addComponent(e, 'Position', { x, y });
+  world.addComponent(e, PREV_POSITION, { x, y });
+}
 
 export function makePlant(world: World, kind: PlantKind, col: number, row: number): Entity {
   const def = PLANTS[kind];
   const e = world.spawn();
-  world.addComponent(e, 'Position', { x: cellCenterX(col), y: cellCenterY(row) });
+  place(world, e, cellCenterX(col), cellCenterY(row));
+  const rng = world.resources.rng as Rng;
   world.addComponent(e, 'PlantInfo', { kind, col, row });
   world.addComponent(e, 'Health', { hp: def.hp, max: def.hp, flash: 0 });
-  world.addComponent(e, 'Renderable', { kind, anim: Math.random() * 10 });
+  world.addComponent(e, 'Renderable', { kind, anim: rng.range(0, 10) });
   if (def.shoots) {
     world.addComponent(e, 'RangedAttack', {
       cooldown: 0.7,
@@ -43,7 +51,7 @@ export function makePlant(world: World, kind: PlantKind, col: number, row: numbe
 export function makeZombie(world: World, kind: ZombieKind, row: number, rng: Rng): Entity {
   const def = ZOMBIES[kind];
   const e = world.spawn();
-  world.addComponent(e, 'Position', { x: LAWN_LEFT + LAWN_W + rng.range(15, 60), y: cellCenterY(row) });
+  place(world, e, LAWN_LEFT + LAWN_W + rng.range(15, 60), cellCenterY(row));
   world.addComponent(e, 'ZombieBrain', {
     row,
     baseSpeed: def.speed,
@@ -67,7 +75,7 @@ export function makeProjectile(
 ): Entity {
   const def = PROJECTILES[kind];
   const e = world.spawn();
-  world.addComponent(e, 'Position', { x, y });
+  place(world, e, x, y);
   world.addComponent(e, 'ProjectileC', {
     dmg: def.dmg,
     speed: def.speed,
@@ -82,7 +90,7 @@ export function makeProjectile(
 
 export function makeSun(world: World, x: number, targetY: number, value: number): Entity {
   const e = world.spawn();
-  world.addComponent(e, 'Position', { x, y: -24 });
+  place(world, e, x, -24);
   world.addComponent(e, 'SunC', {
     value,
     ttl: SUN_TTL,
@@ -97,7 +105,7 @@ export function makeSun(world: World, x: number, targetY: number, value: number)
 
 export function makeMower(world: World, row: number): Entity {
   const e = world.spawn();
-  world.addComponent(e, 'Position', { x: MOWER_X, y: cellCenterY(row) + 14 });
+  place(world, e, MOWER_X, cellCenterY(row) + 14);
   world.addComponent(e, 'MowerC', { row, active: false, speed: MOWER_SPEED, dustAcc: 0 });
   world.addComponent(e, 'Renderable', { kind: 'mower', anim: 0 });
   return e;
@@ -115,7 +123,7 @@ export function burst(
   for (let i = 0; i < count; i++) {
     const e = world.spawn();
     const ttl = 0.4 + r.range(0, 0.35);
-    world.addComponent(e, 'Position', { x, y });
+    place(world, e, x, y);
     world.addComponent(e, 'Particle', {
       ttl,
       maxTtl: ttl,

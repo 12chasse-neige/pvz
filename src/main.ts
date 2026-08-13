@@ -7,7 +7,7 @@ import { Input } from './core/Input';
 import { Loop } from './core/Loop';
 import { SceneManager } from './core/SceneManager';
 import type { GameEvents } from './game/events';
-import { MenuScene } from './game/scenes/MenuScene';
+import { LoadingScene } from './game/scenes/LoadingScene';
 import { save } from './game/save';
 
 const stage = document.getElementById('stage');
@@ -20,7 +20,10 @@ const events = new EventBus<GameEvents>();
 const input = new Input(canvas);
 const assets = new AssetManager();
 const audio = new Audio();
-audio.setMuted(save.load().muted);
+
+const data = save.load();
+audio.setSettings(data.audio);
+document.body.classList.toggle('high-contrast', data.highContrast);
 
 const loop = new Loop(
   (dt) => sm.update(dt),
@@ -42,5 +45,6 @@ window.addEventListener('resize', () => {
   sm.onResize();
 });
 
-sm.push(new MenuScene());
+// Gameplay-critical bundle loads before the menu can appear.
+sm.push(new LoadingScene());
 loop.start();

@@ -4,3 +4,5 @@ dist/
 .chrome-tmp/
 *.log
 .pnpm-store/
+.pw-browsers/
+.artifacts/

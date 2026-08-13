@@ -29,6 +29,7 @@ export interface Scene<E extends object = Record<string, unknown>> {
 export class SceneManager<E extends object = Record<string, unknown>> {
   private stack: Scene<E>[] = [];
   readonly ctx: SceneContext<E>;
+  private fading = false;
 
   constructor(ctx: Omit<SceneContext<E>, 'sm'>) {
     this.ctx = { ...ctx, sm: this };
@@ -36,6 +37,10 @@ export class SceneManager<E extends object = Record<string, unknown>> {
 
   current(): Scene<E> | undefined {
     return this.stack[this.stack.length - 1];
+  }
+
+  get transitioning(): boolean {
+    return this.fading;
   }
 
   push(scene: Scene<E>, ...args: unknown[]): void {
@@ -46,6 +51,27 @@ export class SceneManager<E extends object = Record<string, unknown>> {
   replace(scene: Scene<E>, ...args: unknown[]): void {
     this.pop();
     this.push(scene, ...args);
+  }
+
+  /**
+   * Replace with a 250–450 ms fade. The fader overlay swallows pointer
+   * input while transitioning so double input cannot leak through.
+   */
+  replaceFaded(scene: Scene<E>, fadeMs = 300, ...args: unknown[]): void {
+    if (this.fading) return;
+    this.fading = true;
+    const el = document.createElement('div');
+    el.className = 'scene-fader';
+    el.style.pointerEvents = 'auto';
+    this.ctx.view.uiInner.appendChild(el);
+    const half = fadeMs / 2;
+    window.setTimeout(() => {
+      this.replace(scene, ...args);
+      window.setTimeout(() => {
+        el.remove();
+        this.fading = false;
+      }, half);
+    }, half);
   }
 
   pop(): Scene<E> | undefined {

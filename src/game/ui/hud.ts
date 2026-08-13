@@ -1,7 +1,9 @@
+import type { AssetManager } from '../../core/AssetManager';
 import type { GameState } from '../state';
 import type { LevelDef, PlantKind } from '../content';
 import { PLANTS } from '../content';
-import { drawIcon } from '../render/painters';
+import { drawSeedPortrait, drawToolIcon } from './icons';
+import type { ToolIconKind } from './icons';
 
 export interface HUDHandlers {
   onSelect(kind: PlantKind): void;
@@ -11,21 +13,24 @@ export interface HUDHandlers {
 }
 
 /**
- * DOM overlay HUD, positioned in game-pixel coordinates by the
- * #ui-inner scale transform. Updated from GameState each frame.
+ * DOM overlay HUD in the garden-tool style: painted wood bar, paper seed
+ * packets with portraits, cost badges, recharge veils with last-second
+ * countdowns, a lawn-path wave bar and painted tool icons. All controls
+ * are ≥ 44 CSS px, keyboard-focusable and aria-labelled.
  */
 export class HUD {
   private root: HTMLDivElement;
   private sunValue: HTMLElement;
-  private cards = new Map<PlantKind, { el: HTMLButtonElement; cost: HTMLElement; recharge: HTMLElement }>();
+  private cards = new Map<PlantKind, { el: HTMLButtonElement; recharge: HTMLElement; countdown: HTMLElement; badge: HTMLElement; portrait: HTMLCanvasElement }>();
   private shovelBtn: HTMLButtonElement;
   private muteBtn: HTMLButtonElement;
   private progressFill: HTMLElement;
   private lastSun = -1;
-  private lastPhase = '';
+  private readonly assets: AssetManager;
 
   constructor(
     uiInner: HTMLElement,
+    assets: AssetManager,
     level: LevelDef,
     state: GameState,
     handlers: HUDHandlers,
@@ -33,112 +38,121 @@ export class HUD {
     totalTime: number,
     muted: boolean,
   ) {
+    this.assets = assets;
     this.root = document.createElement('div');
     this.root.className = 'hud';
+    this.root.setAttribute('role', 'toolbar');
+    this.root.setAttribute('aria-label', 'Game controls');
 
-    // Sun counter
+    // ---- sun counter ----
     const sunBox = document.createElement('div');
     sunBox.className = 'sun-counter';
-    const sunIcon = document.createElement('span');
-    sunIcon.className = 'sun-icon';
-    sunIcon.textContent = '☀';
+    sunBox.setAttribute('aria-label', 'Sun balance');
+    const sunIcon = this.makeIcon(assets, 'sun', 30);
+    sunIcon.className = 'sun-icon-canvas';
     this.sunValue = document.createElement('span');
     this.sunValue.className = 'sun-value';
     this.sunValue.textContent = String(state.sun);
     sunBox.append(sunIcon, this.sunValue);
     this.root.appendChild(sunBox);
 
-    // Seed bank
+    // ---- seed bank ----
     const bank = document.createElement('div');
     bank.className = 'seedbank';
     level.allowedPlants.forEach((kind, i) => {
       const def = PLANTS[kind];
       const card = document.createElement('button');
       card.className = 'seed-card';
-      card.title = def.name + ' — ' + def.cost + ' sun' + (def.produces ? ' (produces sun)' : def.shoots ? ' (shoots peas)' : def.bomb ? ' (explodes)' : ' (blocks)');
-      const icon = document.createElement('canvas');
-      icon.width = 44;
-      icon.height = 44;
-      const ictx = icon.getContext('2d')!;
-      ictx.save();
-      ictx.translate(22, 24);
-      ictx.scale(1.15, 1.15);
-      drawIcon(ictx, kind);
-      ictx.restore();
-      const cost = document.createElement('span');
-      cost.className = 'cost';
-      cost.textContent = String(def.cost);
+      card.setAttribute('aria-label', def.name + ', costs ' + def.cost + ' sun, hotkey ' + (i + 1));
+      const paper = document.createElement('div');
+      paper.className = 'packet';
+      const portrait = document.createElement('canvas');
+      portrait.width = 48;
+      portrait.height = 56;
+      const pctx = portrait.getContext('2d')!;
+      drawSeedPortrait(pctx, assets, kind);
+      const name = document.createElement('span');
+      name.className = 'packet-name';
+      name.textContent = def.name;
+      const badge = document.createElement('span');
+      badge.className = 'cost-badge';
+      badge.textContent = String(def.cost);
       const recharge = document.createElement('div');
       recharge.className = 'recharge';
       recharge.style.height = '0%';
+      const countdown = document.createElement('div');
+      countdown.className = 'recharge-count';
       const hotkey = document.createElement('span');
       hotkey.className = 'hotkey';
       hotkey.textContent = String(i + 1);
-      card.append(icon, cost, recharge, hotkey);
+      paper.append(portrait, name, badge, recharge, countdown, hotkey);
+      card.appendChild(paper);
       card.addEventListener('click', (e) => {
         e.stopPropagation();
         handlers.onSelect(kind);
       });
       bank.appendChild(card);
-      this.cards.set(kind, { el: card, cost, recharge });
+      this.cards.set(kind, { el: card, recharge, countdown, badge, portrait });
     });
     this.root.appendChild(bank);
 
-    // Shovel
-    this.shovelBtn = document.createElement('button');
-    this.shovelBtn.className = 'tool-btn';
-    this.shovelBtn.title = 'Shovel (S): dig up a plant';
-    this.shovelBtn.textContent = '🪏';
-    this.shovelBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      handlers.onShovel();
-    });
-    this.root.appendChild(this.shovelBtn);
-
-    // Pause
-    const pauseBtn = document.createElement('button');
-    pauseBtn.className = 'tool-btn';
-    pauseBtn.title = 'Pause (Esc)';
-    pauseBtn.textContent = '⏸';
-    pauseBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      handlers.onPause();
-    });
-    this.root.appendChild(pauseBtn);
-
-    // Mute
-    this.muteBtn = document.createElement('button');
-    this.muteBtn.className = 'tool-btn';
-    this.muteBtn.title = 'Toggle sound';
-    this.muteBtn.textContent = muted ? '🔇' : '🔊';
-    this.muteBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      handlers.onMute();
-    });
-    this.root.appendChild(this.muteBtn);
+    // ---- tools ----
+    this.shovelBtn = this.makeToolButton(assets, 'shovel', 'Shovel (S): dig up a plant', () => handlers.onShovel());
+    const pauseBtn = this.makeToolButton(assets, 'pause', 'Pause (Esc)', () => handlers.onPause());
+    this.muteBtn = this.makeToolButton(assets, muted ? 'sound-off' : 'sound-on', 'Toggle sound', () => handlers.onMute());
+    this.root.append(this.shovelBtn, pauseBtn, this.muteBtn);
 
     uiInner.appendChild(this.root);
 
-    // Progress bar
+    // ---- wave bar (lawn path) ----
     const progress = document.createElement('div');
     progress.className = 'progress';
+    progress.setAttribute('aria-hidden', 'true');
     this.progressFill = document.createElement('div');
     this.progressFill.className = 'fill';
     progress.appendChild(this.progressFill);
-    for (const wt of waveTimes) {
-      const flag = document.createElement('div');
-      flag.className = 'flag';
-      flag.style.left = ((wt / totalTime) * 100).toFixed(2) + '%';
-      progress.appendChild(flag);
-    }
+    waveTimes.forEach((wt, i) => {
+      const flag = level.waves[i]?.flag;
+      const marker = document.createElement('div');
+      marker.className = 'wave-marker' + (flag ? ' flag-wave' : '');
+      marker.style.left = ((wt / totalTime) * 100).toFixed(2) + '%';
+      const icon = this.makeIcon(assets, flag ? 'flag' : 'zombie', flag ? 22 : 16);
+      marker.appendChild(icon);
+      progress.appendChild(marker);
+    });
+    const now = document.createElement('div');
+    now.className = 'now-marker';
+    progress.appendChild(now);
     uiInner.appendChild(progress);
   }
 
+  private makeIcon(assets: AssetManager, kind: ToolIconKind, size: number): HTMLCanvasElement {
+    const icon = document.createElement('canvas');
+    icon.width = size * 2;
+    icon.height = size * 2;
+    const ictx = icon.getContext('2d')!;
+    ictx.scale(2, 2);
+    ictx.translate(size / 2, size / 2);
+    drawToolIcon(ictx, assets, kind);
+    return icon;
+  }
+
+  private makeToolButton(assets: AssetManager, kind: ToolIconKind, label: string, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.className = 'tool-btn';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+    const icon = this.makeIcon(assets, kind, 26);
+    icon.className = 'tool-icon';
+    btn.appendChild(icon);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onClick();
+    });
+    return btn;
+  }
+
   update(state: GameState): void {
-    if (state.sun !== this.lastSun) {
-      this.lastSun = state.sun;
-      this.sunValue.textContent = String(state.sun);
-    }
     for (const [kind, c] of this.cards) {
       const def = PLANTS[kind];
       const recharging = state.recharges[kind] > 0;
@@ -146,14 +160,29 @@ export class HUD {
       const disabled = recharging || !affordable;
       c.el.classList.toggle('disabled', disabled);
       c.el.classList.toggle('selected', state.selected === kind && !disabled);
-      c.recharge.style.height = recharging
-        ? Math.min(100, (state.recharges[kind] / def.recharge) * 100).toFixed(1) + '%'
-        : '0%';
+      c.el.classList.toggle('unaffordable', !affordable && !recharging);
+      c.badge.classList.toggle('badge-dim', !affordable);
+      if (recharging) {
+        c.recharge.style.height =
+          Math.min(100, (state.recharges[kind] / def.recharge) * 100).toFixed(1) + '%';
+        c.countdown.style.display = state.recharges[kind] < 3.5 ? 'block' : 'none';
+        c.countdown.textContent = Math.ceil(state.recharges[kind]).toString();
+      } else {
+        c.recharge.style.height = '0%';
+        c.countdown.style.display = 'none';
+      }
     }
     this.shovelBtn.classList.toggle('selected', state.shovel);
-    const phase = state.phase;
-    if (phase !== this.lastPhase) {
-      this.lastPhase = phase;
+  }
+
+  setSun(value: number, pop = false): void {
+    if (value === this.lastSun && !pop) return;
+    this.lastSun = value;
+    this.sunValue.textContent = String(value);
+    if (pop) {
+      this.sunValue.classList.remove('pop');
+      void this.sunValue.offsetWidth; // restart the animation
+      this.sunValue.classList.add('pop');
     }
   }
 
@@ -162,14 +191,21 @@ export class HUD {
   }
 
   setMuted(muted: boolean): void {
-    this.muteBtn.textContent = muted ? '🔇' : '🔊';
+    const icon = this.muteBtn.querySelector('.tool-icon') as HTMLCanvasElement | null;
+    if (!icon) return;
+    const ictx = icon.getContext('2d')!;
+    ictx.setTransform(1, 0, 0, 1, 0, 0);
+    ictx.clearRect(0, 0, icon.width, icon.height);
+    ictx.scale(2, 2);
+    ictx.translate(13, 13);
+    drawToolIcon(ictx, this.assets, muted ? 'sound-off' : 'sound-on');
   }
 
-  showBanner(text: string): void {
+  showBanner(text: string, variant: 'info' | 'wave' = 'info'): void {
     const old = this.root.parentElement?.querySelector('.banner');
     old?.remove();
     const b = document.createElement('div');
-    b.className = 'banner';
+    b.className = 'banner banner-' + variant;
     b.textContent = text;
     this.root.parentElement?.appendChild(b);
     window.setTimeout(() => b.remove(), 2400);

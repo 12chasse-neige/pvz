@@ -16,6 +16,8 @@ export class GameView {
   readonly logicalW = 800;
   readonly logicalH = 600;
   scale = 1;
+  /** Cap on device pixel ratio (adaptive quality lowers it on tablets). */
+  dprCap = 2;
 
   constructor(stage: HTMLElement, canvas: HTMLCanvasElement, ui: HTMLElement) {
     this.stage = stage;
@@ -38,7 +40,7 @@ export class GameView {
     this.scale = clamp(Math.min(w / this.logicalW, h / this.logicalH), 0.2, 4);
     const cssW = Math.round(this.logicalW * this.scale);
     const cssH = Math.round(this.logicalH * this.scale);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.dprCap);
     this.canvas.width = Math.round(cssW * dpr);
     this.canvas.height = Math.round(cssH * dpr);
     this.canvas.style.width = cssW + 'px';

@@ -13,7 +13,7 @@ export interface GameEvents {
   'plant-placed': { kind: PlantKind; col: number; row: number };
   'plant-removed': { col: number; row: number };
   'projectile-fired': { kind: 'pea' | 'frozen' };
-  'zombie-killed': { kind: ZombieKind };
+  'zombie-killed': { kind: ZombieKind; x: number; y: number };
   'explosion': { x: number; y: number };
   'mower-triggered': { row: number };
   'wave-started': { index: number; flag: boolean };

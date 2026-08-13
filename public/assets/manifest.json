@@ -1,0 +1,1114 @@
+{
+  "format": 1,
+  "scale": 2,
+  "meta": {
+    "name": "storybook-suburban-garden",
+    "authors": [
+      "the pvz project (generative art pipeline)"
+    ],
+    "license": "CC0 1.0 (public domain dedication, original work)",
+    "artBible": "docs/ART_BIBLE.md"
+  },
+  "atlases": {
+    "characters": {
+      "url": "assets/characters.png",
+      "w": 1024,
+      "h": 1876
+    },
+    "effects": {
+      "url": "assets/effects.png",
+      "w": 1024,
+      "h": 446
+    },
+    "ui": {
+      "url": "assets/ui.png",
+      "w": 1024,
+      "h": 168
+    }
+  },
+  "textures": {
+    "env-sky": {
+      "url": "assets/env-sky.png",
+      "w": 1600,
+      "h": 1200
+    },
+    "env-clouds": {
+      "url": "assets/env-clouds.png",
+      "w": 1600,
+      "h": 1200
+    },
+    "env-house": {
+      "url": "assets/env-house.png",
+      "w": 1600,
+      "h": 1200
+    },
+    "env-lawn": {
+      "url": "assets/env-lawn.png",
+      "w": 1600,
+      "h": 1200
+    },
+    "env-foliage": {
+      "url": "assets/env-foliage.png",
+      "w": 1600,
+      "h": 1200
+    }
+  },
+  "sprites": {
+    "peashooter": {
+      "atlas": "characters",
+      "pivot": [
+        0.5,
+        0.9722222222222222
+      ],
+      "logicalW": 56,
+      "logicalH": 72,
+      "frames": [
+        {
+          "x": 300,
+          "y": 1320,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 414,
+          "y": 1320,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 528,
+          "y": 1320,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 642,
+          "y": 1320,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 756,
+          "y": 1320,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 870,
+          "y": 1320,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 0,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 114,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 228,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        }
+      ],
+      "clips": {
+        "idle": {
+          "fps": 10,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            },
+            {
+              "frame": 1,
+              "dur": 1
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            },
+            {
+              "frame": 3,
+              "dur": 1
+            },
+            {
+              "frame": 4,
+              "dur": 1
+            },
+            {
+              "frame": 5,
+              "dur": 1
+            }
+          ]
+        },
+        "fire": {
+          "fps": 14,
+          "loop": "once",
+          "frames": [
+            {
+              "frame": 6,
+              "dur": 1,
+              "markers": [
+                {
+                  "at": 0,
+                  "event": "aim"
+                }
+              ]
+            },
+            {
+              "frame": 7,
+              "dur": 1,
+              "markers": [
+                {
+                  "at": 0,
+                  "event": "muzzle"
+                },
+                {
+                  "at": 0,
+                  "event": "shoot"
+                }
+              ]
+            },
+            {
+              "frame": 8,
+              "dur": 1
+            }
+          ],
+          "next": "idle"
+        }
+      },
+      "defaultClip": "idle"
+    },
+    "snowpea": {
+      "atlas": "characters",
+      "pivot": [
+        0.5,
+        0.9722222222222222
+      ],
+      "logicalW": 56,
+      "logicalH": 72,
+      "frames": [
+        {
+          "x": 342,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 456,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 570,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 684,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 798,
+          "y": 1584,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 0,
+          "y": 1730,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 114,
+          "y": 1730,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 228,
+          "y": 1730,
+          "w": 112,
+          "h": 144
+        },
+        {
+          "x": 342,
+          "y": 1730,
+          "w": 112,
+          "h": 144
+        }
+      ],
+      "clips": {
+        "idle": {
+          "fps": 10,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            },
+            {
+              "frame": 1,
+              "dur": 1
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            },
+            {
+              "frame": 3,
+              "dur": 1
+            },
+            {
+              "frame": 4,
+              "dur": 1
+            },
+            {
+              "frame": 5,
+              "dur": 1
+            }
+          ]
+        },
+        "fire": {
+          "fps": 14,
+          "loop": "once",
+          "frames": [
+            {
+              "frame": 6,
+              "dur": 1
+            },
+            {
+              "frame": 7,
+              "dur": 1,
+              "markers": [
+                {
+                  "at": 0,
+                  "event": "muzzle"
+                },
+                {
+                  "at": 0,
+                  "event": "shoot"
+                }
+              ]
+            },
+            {
+              "frame": 8,
+              "dur": 1
+            }
+          ],
+          "next": "idle"
+        }
+      },
+      "defaultClip": "idle"
+    },
+    "zombie-basic": {
+      "atlas": "characters",
+      "pivot": [
+        0.5,
+        0.9847328244274809
+      ],
+      "logicalW": 149,
+      "logicalH": 131,
+      "frames": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 300,
+          "y": 0,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 600,
+          "y": 0,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 0,
+          "y": 264,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 300,
+          "y": 264,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 600,
+          "y": 264,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 0,
+          "y": 528,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 300,
+          "y": 528,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 600,
+          "y": 528,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 0,
+          "y": 792,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 300,
+          "y": 792,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 600,
+          "y": 792,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 0,
+          "y": 1056,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 300,
+          "y": 1056,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 600,
+          "y": 1056,
+          "w": 298,
+          "h": 262
+        },
+        {
+          "x": 0,
+          "y": 1320,
+          "w": 298,
+          "h": 262
+        }
+      ],
+      "clips": {
+        "walk": {
+          "fps": 8,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            },
+            {
+              "frame": 1,
+              "dur": 1,
+              "markers": [
+                {
+                  "at": 0,
+                  "event": "footstep"
+                }
+              ]
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            },
+            {
+              "frame": 3,
+              "dur": 1
+            },
+            {
+              "frame": 4,
+              "dur": 1
+            },
+            {
+              "frame": 5,
+              "dur": 1,
+              "markers": [
+                {
+                  "at": 0,
+                  "event": "footstep"
+                }
+              ]
+            },
+            {
+              "frame": 6,
+              "dur": 1
+            },
+            {
+              "frame": 7,
+              "dur": 1
+            }
+          ]
+        },
+        "eat": {
+          "fps": 6,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 8,
+              "dur": 1
+            },
+            {
+              "frame": 9,
+              "dur": 1,
+              "markers": [
+                {
+                  "at": 0,
+                  "event": "bite"
+                }
+              ]
+            },
+            {
+              "frame": 10,
+              "dur": 1
+            },
+            {
+              "frame": 11,
+              "dur": 1
+            }
+          ]
+        },
+        "death": {
+          "fps": 9,
+          "loop": "hold",
+          "frames": [
+            {
+              "frame": 12,
+              "dur": 1
+            },
+            {
+              "frame": 13,
+              "dur": 1
+            },
+            {
+              "frame": 14,
+              "dur": 1
+            },
+            {
+              "frame": 15,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "walk"
+    },
+    "pea": {
+      "atlas": "effects",
+      "pivot": [
+        0.5263157894736842,
+        0.5263157894736842
+      ],
+      "logicalW": 19,
+      "logicalH": 19,
+      "frames": [
+        {
+          "x": 312,
+          "y": 344,
+          "w": 38,
+          "h": 38
+        },
+        {
+          "x": 352,
+          "y": 344,
+          "w": 38,
+          "h": 38
+        },
+        {
+          "x": 392,
+          "y": 344,
+          "w": 38,
+          "h": 38
+        }
+      ],
+      "clips": {
+        "spin": {
+          "fps": 12,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            },
+            {
+              "frame": 1,
+              "dur": 1
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "spin"
+    },
+    "pea-frozen": {
+      "atlas": "effects",
+      "pivot": [
+        0.52,
+        0.52
+      ],
+      "logicalW": 25,
+      "logicalH": 25,
+      "frames": [
+        {
+          "x": 156,
+          "y": 344,
+          "w": 50,
+          "h": 50
+        },
+        {
+          "x": 208,
+          "y": 344,
+          "w": 50,
+          "h": 50
+        },
+        {
+          "x": 260,
+          "y": 344,
+          "w": 50,
+          "h": 50
+        }
+      ],
+      "clips": {
+        "spin": {
+          "fps": 12,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            },
+            {
+              "frame": 1,
+              "dur": 1
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "spin"
+    },
+    "sun": {
+      "atlas": "effects",
+      "pivot": [
+        0.5094339622641509,
+        0.5094339622641509
+      ],
+      "logicalW": 53,
+      "logicalH": 53,
+      "frames": [
+        {
+          "x": 0,
+          "y": 236,
+          "w": 106,
+          "h": 106
+        },
+        {
+          "x": 108,
+          "y": 236,
+          "w": 106,
+          "h": 106
+        },
+        {
+          "x": 216,
+          "y": 236,
+          "w": 106,
+          "h": 106
+        }
+      ],
+      "clips": {
+        "pulse": {
+          "fps": 6,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            },
+            {
+              "frame": 1,
+              "dur": 1
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "pulse"
+    },
+    "mower": {
+      "atlas": "effects",
+      "pivot": [
+        0.5,
+        0.96
+      ],
+      "logicalW": 77,
+      "logicalH": 50,
+      "frames": [
+        {
+          "x": 324,
+          "y": 236,
+          "w": 154,
+          "h": 100
+        },
+        {
+          "x": 480,
+          "y": 236,
+          "w": 154,
+          "h": 100
+        },
+        {
+          "x": 636,
+          "y": 236,
+          "w": 154,
+          "h": 100
+        },
+        {
+          "x": 792,
+          "y": 236,
+          "w": 154,
+          "h": 100
+        },
+        {
+          "x": 0,
+          "y": 344,
+          "w": 154,
+          "h": 100
+        }
+      ],
+      "clips": {
+        "idle": {
+          "fps": 8,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        },
+        "run": {
+          "fps": 12,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 1,
+              "dur": 1
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            },
+            {
+              "frame": 3,
+              "dur": 1
+            },
+            {
+              "frame": 4,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "idle"
+    },
+    "blast": {
+      "atlas": "effects",
+      "pivot": [
+        0.5042735042735043,
+        0.5042735042735043
+      ],
+      "logicalW": 117,
+      "logicalH": 117,
+      "frames": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 234,
+          "h": 234
+        },
+        {
+          "x": 236,
+          "y": 0,
+          "w": 234,
+          "h": 234
+        },
+        {
+          "x": 472,
+          "y": 0,
+          "w": 234,
+          "h": 234
+        },
+        {
+          "x": 708,
+          "y": 0,
+          "w": 234,
+          "h": 234
+        }
+      ],
+      "clips": {
+        "boom": {
+          "fps": 20,
+          "loop": "hold",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            },
+            {
+              "frame": 1,
+              "dur": 1
+            },
+            {
+              "frame": 2,
+              "dur": 1
+            },
+            {
+              "frame": 3,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "boom"
+    },
+    "ui.sun": {
+      "atlas": "ui",
+      "pivot": [
+        0.5121951219512195,
+        0.5121951219512195
+      ],
+      "logicalW": 41,
+      "logicalH": 41,
+      "frames": [
+        {
+          "x": 194,
+          "y": 0,
+          "w": 82,
+          "h": 82
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.shovel": {
+      "atlas": "ui",
+      "pivot": [
+        0.5217391304347826,
+        0.5714285714285714
+      ],
+      "logicalW": 23,
+      "logicalH": 35,
+      "frames": [
+        {
+          "x": 278,
+          "y": 0,
+          "w": 46,
+          "h": 70
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.pause": {
+      "atlas": "ui",
+      "pivot": [
+        0.5238095238095238,
+        0.5172413793103449
+      ],
+      "logicalW": 21,
+      "logicalH": 29,
+      "frames": [
+        {
+          "x": 542,
+          "y": 0,
+          "w": 42,
+          "h": 58
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.sound-on": {
+      "atlas": "ui",
+      "pivot": [
+        0.34210526315789475,
+        0.5161290322580645
+      ],
+      "logicalW": 38,
+      "logicalH": 31,
+      "frames": [
+        {
+          "x": 386,
+          "y": 0,
+          "w": 76,
+          "h": 62
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.sound-off": {
+      "atlas": "ui",
+      "pivot": [
+        0.34210526315789475,
+        0.5161290322580645
+      ],
+      "logicalW": 38,
+      "logicalH": 31,
+      "frames": [
+        {
+          "x": 464,
+          "y": 0,
+          "w": 76,
+          "h": 62
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.flag": {
+      "atlas": "ui",
+      "pivot": [
+        0.16666666666666666,
+        0.5116279069767442
+      ],
+      "logicalW": 24,
+      "logicalH": 43,
+      "frames": [
+        {
+          "x": 144,
+          "y": 0,
+          "w": 48,
+          "h": 86
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.lock": {
+      "atlas": "ui",
+      "pivot": [
+        0.5172413793103449,
+        0.5151515151515151
+      ],
+      "logicalW": 29,
+      "logicalH": 33,
+      "frames": [
+        {
+          "x": 326,
+          "y": 0,
+          "w": 58,
+          "h": 66
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.unknown": {
+      "atlas": "ui",
+      "pivot": [
+        0.5185185185185185,
+        0.5185185185185185
+      ],
+      "logicalW": 27,
+      "logicalH": 27,
+      "frames": [
+        {
+          "x": 586,
+          "y": 0,
+          "w": 54,
+          "h": 54
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.zombie": {
+      "atlas": "ui",
+      "pivot": [
+        0.52,
+        0.46153846153846156
+      ],
+      "logicalW": 25,
+      "logicalH": 26,
+      "frames": [
+        {
+          "x": 642,
+          "y": 0,
+          "w": 50,
+          "h": 52
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    },
+    "ui.packet": {
+      "atlas": "ui",
+      "pivot": [
+        0.5070422535211268,
+        0.5060240963855421
+      ],
+      "logicalW": 71,
+      "logicalH": 83,
+      "frames": [
+        {
+          "x": 0,
+          "y": 0,
+          "w": 142,
+          "h": 166
+        }
+      ],
+      "clips": {
+        "static": {
+          "fps": 4,
+          "loop": "loop",
+          "frames": [
+            {
+              "frame": 0,
+              "dur": 1
+            }
+          ]
+        }
+      },
+      "defaultClip": "static"
+    }
+  }
+}
