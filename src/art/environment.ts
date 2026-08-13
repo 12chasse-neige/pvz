@@ -22,6 +22,7 @@ import {
   SKY_HORIZON,
   SKY_TOP,
   SOIL,
+  SOIL_DARK,
   STONE,
   WINDOW_GLASS,
 } from './palette';
@@ -179,13 +180,13 @@ export function drawHouse(ctx: CanvasRenderingContext2D): void {
   // ---- right sidewalk ----
   const sx = LAWN_LEFT + LAWN_W;
   ctx.fillStyle = SIDEWALK;
-  ctx.fillRect(sx, LAWN_TOP, LOGICAL_W - sx, LAWN_H);
+  ctx.fillRect(sx, LAWN_TOP, LOGICAL_W - sx, LOGICAL_H - LAWN_TOP);
   ctx.fillStyle = 'rgba(0,0,0,0.10)';
-  for (const sy of [LAWN_TOP + 125, LAWN_TOP + 260, LAWN_TOP + 395]) {
+  for (const sy of [LAWN_TOP + 125, LAWN_TOP + 260, LAWN_TOP + 395, 570]) {
     ctx.fillRect(sx, sy, LOGICAL_W - sx, 2);
   }
   const r2 = frameRng(202);
-  speckle(ctx, r2, sx, LAWN_TOP, LOGICAL_W - sx, LAWN_H, 90, 'rgba(0,0,0,0.07)', 0.5);
+  speckle(ctx, r2, sx, LAWN_TOP, LOGICAL_W - sx, LOGICAL_H - LAWN_TOP, 110, 'rgba(0,0,0,0.07)', 0.5);
   // curb shadow toward the lawn
   const curb = ctx.createLinearGradient(sx - 8, 0, sx, 0);
   curb.addColorStop(0, 'rgba(0,0,0,0)');
@@ -291,6 +292,13 @@ export function drawLawn(ctx: CanvasRenderingContext2D): void {
   shade.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = shade;
   ctx.fillRect(x, y, 26, h);
+
+  // grounding band below the lawn (garden path edge)
+  ctx.fillStyle = SOIL_DARK;
+  ctx.fillRect(x, y + h, w, LOGICAL_H - (y + h));
+  speckle(ctx, r, x, y + h, w, LOGICAL_H - (y + h), 160, 'rgba(0,0,0,0.22)', 0.5, 0.8, 2);
+  ctx.fillStyle = 'rgba(255,240,200,0.08)';
+  ctx.fillRect(x, y + h, w, 2);
 }
 
 /** Layer 7: foreground foliage corners (painted, slightly soft). */
