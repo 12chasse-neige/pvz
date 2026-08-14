@@ -50,7 +50,7 @@ pnpm smoke
 | Entities | `src/game/factory.ts` | component assembly (`makePlant`, `makeZombie`, `makeSun`, …) |
 | World bootstrap | `src/game/setup.ts` | `setupWorld(level, seed, events)` — shared by live play and tests |
 | Source art | `src/art/` | editable, procedurally-painted artwork (palette, five plants, five zombie variants, effects, environment, UI) — doubles as the runtime fallback painters |
-| Asset pipeline | `scripts/bake-assets.ts` | renders every frame at 2×, measures exact per-clip bounds/pivots, packs WebP atlases, writes `public/assets/*.webp` + typed `manifest.json` |
+| Asset pipeline | `scripts/bake-assets.ts` | renders every frame at 2×, measures exact per-clip bounds/pivots, packs lossless PNG atlases, writes `public/assets/*.png` + typed `manifest.json` |
 | Animation | `src/game/anim/` | typed `SpriteAtlasDef`/`AnimationClip`/`AnimationFrame`/`RenderProfile`, clip playback with frame markers, ECS→animation-state resolver |
 | Rendering | `src/game/render/` | layered `Battlefield` (parallax, cloud shadows, cached gradients), sprite painter with contact shadows + status overlays, trauma camera, cosmetic FX pool (capped particles, death actors, flyers), adaptive `QualityManager`, prev/current position interpolation |
 | UI | `src/game/ui/hud.ts` | DOM HUD: paper seed packets, painted tool icons, lawn-path wave bar, sun counter pop |

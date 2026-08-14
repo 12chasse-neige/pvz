@@ -3,7 +3,7 @@
  * resolution, packs frames into sprite atlases, and writes the runtime
  * artifacts to public/assets/:
  *   - characters.png / effects.png / ui.png      (packed, transparent PNG)
- *   - env-*.png                                   (flat environment layers)
+ *   - env-*.png                                   (lossless environment layers)
  *   - manifest.json                               (typed atlas metadata)
  *
  * Run: pnpm bake   (requires @napi-rs/canvas; outputs are committed)
@@ -491,7 +491,9 @@ function buildAtlas(jobs: SpriteJob[], name: 'characters' | 'effects' | 'ui'): {
     const placed = out.find((p) => p.key === f.key && p.frame === f.frame)!;
     actx.drawImage(f.canvas as unknown as Parameters<Ctx['drawImage']>[0], placed.x, placed.y);
   }
-  writeFileSync(join(OUT_DIR, name + '.webp'), atlas.toBuffer('image/webp'));
+  // Lossless PNG keeps antialiased ink and translucent glows intact. Lossy
+  // WebP introduced dark/color fringes around small moving silhouettes.
+  writeFileSync(join(OUT_DIR, name + '.png'), atlas.toBuffer('image/png'));
   return { w: atlasW, h: atlasH, frames: out };
 }
 
@@ -510,7 +512,7 @@ function bakeEnvironment(): void {
     ctx.scale(SCALE, SCALE);
     layer.draw(ctx);
     ctx.restore();
-    writeFileSync(join(OUT_DIR, layer.name + '.webp'), c.toBuffer('image/webp'));
+    writeFileSync(join(OUT_DIR, layer.name + '.png'), c.toBuffer('image/png'));
   }
 }
 
@@ -546,7 +548,7 @@ function main(): void {
         }))
       : SPRITES.filter((s) => s.atlas === name);
     const { w, h, frames } = buildAtlas(jobs, name);
-    manifest.atlases[name] = { url: 'assets/' + name + '.webp', w, h };
+    manifest.atlases[name] = { url: 'assets/' + name + '.png', w, h };
     for (const job of jobs) {
       const jobFrames = frames
         .filter((f) => f.key === job.key)
@@ -587,7 +589,7 @@ function main(): void {
   // Flat environment textures.
   bakeEnvironment();
   for (const name of ['env-sky', 'env-clouds', 'env-house', 'env-lawn', 'env-foliage'] as const) {
-    manifest.textures[name] = { url: 'assets/' + name + '.webp', w: LOGICAL_W * SCALE, h: LOGICAL_H * SCALE };
+    manifest.textures[name] = { url: 'assets/' + name + '.png', w: LOGICAL_W * SCALE, h: LOGICAL_H * SCALE };
   }
 
   writeFileSync(join(OUT_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2));

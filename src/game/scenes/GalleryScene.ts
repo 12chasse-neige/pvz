@@ -247,7 +247,7 @@ export class GalleryScene implements Scene<GameEvents> {
       const fit = Math.min((cellW - 18) / def.logicalW, (cellH - 26) / def.logicalH, 1.25);
       const bottomAnchor = def.pivot[1] > 0.85;
       const cx = x + cellW / 2;
-      const cy = bottomAnchor ? y + cellH - 10 : y + cellH / 2 + 6;
+      const cy = bottomAnchor ? y + cellH - 14 : y + cellH / 2 + 6;
       drawSpriteFrame(ctx, this.ctx.assets, cell.sprite, this.animator.frameOf(cell.id), cx, cy, {
         scale: fit,
       });

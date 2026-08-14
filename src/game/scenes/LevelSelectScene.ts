@@ -109,59 +109,104 @@ export class LevelSelectScene implements Scene<GameEvents> {
 
   /** Mini painted preview: lawn + level emblem + enemy silhouettes. */
   private paintCard(ctx: CanvasRenderingContext2D, level: LevelDef, i: number, locked: boolean): void {
-    // lawn sketch
+    // Each postcard is its own tiny landscape: morning, clear afternoon,
+    // and a dramatic late-day garden. Shared framing keeps the set cohesive.
     const g = ctx.createLinearGradient(0, 0, 0, 96);
-    g.addColorStop(0, '#9fd8ec');
-    g.addColorStop(0.55, '#d8ecce');
-    g.addColorStop(1, '#63a84c');
+    const skies = [
+      ['#8fd1ed', '#eaf3cf'],
+      ['#6cbce8', '#d8edc4'],
+      ['#7c91c8', '#f2bd78'],
+    ] as const;
+    g.addColorStop(0, skies[i]?.[0] ?? skies[0][0]);
+    g.addColorStop(0.6, skies[i]?.[1] ?? skies[0][1]);
+    g.addColorStop(1, i === 2 ? '#517b3d' : '#63a84c');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 136, 96);
-    ctx.fillStyle = 'rgba(0,0,0,0.10)';
-    ctx.fillRect(0, 78, 136, 18);
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    for (let c = 0; c < 4; c++) ctx.fillRect(14 + c * 30, 8, 18, 10);
+
+    // sun/moon glow
+    const sunX = i === 2 ? 109 : 116;
+    const sunY = i === 2 ? 24 : 18;
+    const glow = ctx.createRadialGradient(sunX, sunY, 1, sunX, sunY, 20);
+    glow.addColorStop(0, i === 2 ? 'rgba(255,223,160,0.9)' : 'rgba(255,245,190,0.9)');
+    glow.addColorStop(1, 'rgba(255,245,190,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(sunX - 22, sunY - 22, 44, 44);
+
+    // soft clouds and distant hedge
+    ctx.fillStyle = 'rgba(255,255,255,0.58)';
+    for (const [cx, cy, s] of [[22, 18, 1], [72, 29, 0.65]] as const) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 7 * s, 0, Math.PI * 2);
+      ctx.arc(cx + 8 * s, cy + 2, 6 * s, 0, Math.PI * 2);
+      ctx.arc(cx - 7 * s, cy + 3, 5 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = i === 2 ? '#3e6538' : '#5a9345';
+    ctx.beginPath();
+    ctx.moveTo(0, 66);
+    for (let x = 0; x <= 136; x += 12) ctx.quadraticCurveTo(x + 6, 53 + ((x / 12) % 2) * 5, x + 12, 64);
+    ctx.lineTo(136, 96);
+    ctx.lineTo(0, 96);
+    ctx.closePath();
+    ctx.fill();
+    const lawn = ctx.createLinearGradient(0, 63, 0, 96);
+    lawn.addColorStop(0, i === 2 ? '#668c48' : '#79b85a');
+    lawn.addColorStop(1, i === 2 ? '#456d35' : '#4f8d3e');
+    ctx.fillStyle = lawn;
+    ctx.beginPath();
+    ctx.moveTo(0, 66);
+    ctx.quadraticCurveTo(68, 58, 136, 68);
+    ctx.lineTo(136, 96);
+    ctx.lineTo(0, 96);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(233,255,192,0.20)';
+    ctx.lineWidth = 1.3;
+    for (let y = 75; y < 96; y += 8) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.quadraticCurveTo(68, y - 5, 136, y + 1);
+      ctx.stroke();
+    }
 
     if (locked) {
-      ctx.fillStyle = 'rgba(40,40,40,0.55)';
+      ctx.fillStyle = 'rgba(30,34,34,0.62)';
       ctx.fillRect(0, 0, 136, 96);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 94);
+      ctx.lineTo(136, 2);
+      ctx.stroke();
       return;
     }
 
     // level emblem plant
     const emblem = i === 0 ? 'peashooter' : i === 1 ? 'snowpea' : 'cherrybomb';
     ctx.save();
-    ctx.translate(34, 74);
-    ctx.scale(0.9, 0.9);
+    ctx.translate(34, 84);
+    ctx.scale(0.88, 0.88);
     drawSeedPortrait(ctx, this.ctx.assets, emblem);
     ctx.restore();
 
     // enemy preview: zombie silhouettes approaching
     const kinds = i === 0 ? ['basic', 'cone'] : i === 1 ? ['cone', 'bucket'] : ['bucket', 'runner'];
     kinds.forEach((kind, k) => {
-      if (kind === 'basic') {
-        drawSpriteFrame(ctx, this.ctx.assets, 'zombie-basic', 0, 96 + k * 26, 82, { scale: 0.4 });
-      } else {
-        ctx.fillStyle = 'rgba(60,70,50,0.85)';
-        ctx.beginPath();
-        ctx.ellipse(100 + k * 26, 66, 9, 20, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(100 + k * 26, 42, 7.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      const sprite = kind === 'basic' ? 'zombie-basic' : kind === 'cone' ? 'zombie-cone' : kind === 'bucket' ? 'zombie-bucket' : 'zombie-runner';
+      drawSpriteFrame(ctx, this.ctx.assets, sprite, 0, 102 + k * 23, 91, { scale: 0.36, flipX: true });
     });
-    // sun + level number
-    ctx.fillStyle = '#ffd84d';
+    // stamped level number
+    ctx.fillStyle = 'rgba(246,227,181,0.92)';
     ctx.beginPath();
-    ctx.arc(124, 16, 7, 0, Math.PI * 2);
+    ctx.arc(123, 15, 9, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#e8a92e';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(92,58,30,0.65)';
+    ctx.lineWidth = 1.3;
     ctx.stroke();
     ctx.fillStyle = '#5c3a1e';
-    ctx.font = 'bold 9px "Trebuchet MS", sans-serif';
+    ctx.font = 'bold 10px "Trebuchet MS", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(String(i + 1), 124, 19.5);
+    ctx.fillText(String(i + 1), 123, 18.5);
     void level;
   }
 

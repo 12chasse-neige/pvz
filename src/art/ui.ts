@@ -220,6 +220,9 @@ export function drawSeedPacket(
   ctx.beginPath();
   rr(ctx, -w / 2 + 6, -h / 2 + 16, w - 12, h * 0.52, 5);
   ctx.clip();
+  // Portrait painters use a 48x56 mini-canvas coordinate system. Align that
+  // canvas with the packet window so baked and live previews share framing.
+  ctx.translate(-24, -30);
   portrait(ctx);
   ctx.restore();
   // cost badge

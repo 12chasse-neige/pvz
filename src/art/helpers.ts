@@ -54,6 +54,22 @@ export function blob(
   ctx.beginPath();
   ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
   ctx.fill();
+  // Hand-painted edge lighting: a broken upper-left highlight and a quiet
+  // lower-right reflected rim make even tiny sprites read as dimensional.
+  ctx.save();
+  ctx.globalAlpha = 0.48;
+  ctx.strokeStyle = lighten(base, 0.52);
+  ctx.lineWidth = Math.max(0.8, inkW * 0.48);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(1, rx - inkW * 0.72), Math.max(1, ry - inkW * 0.72), 0, Math.PI * 1.08, Math.PI * 1.58);
+  ctx.stroke();
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = shade;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, Math.max(1, rx - inkW * 0.68), Math.max(1, ry - inkW * 0.68), 0, Math.PI * 0.08, Math.PI * 0.64);
+  ctx.stroke();
+  ctx.restore();
   ctx.strokeStyle = INK;
   ctx.lineWidth = inkW;
   ctx.lineJoin = 'round';

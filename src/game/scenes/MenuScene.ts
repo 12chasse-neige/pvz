@@ -48,7 +48,7 @@ export class MenuScene implements Scene<GameEvents> {
     titleWrap.append(kicker, title, sub);
 
     const play = document.createElement('button');
-    play.className = 'btn btn-big';
+    play.className = 'btn btn-big menu-play';
     play.textContent = 'Play';
     play.setAttribute('aria-label', 'Play: choose a level');
     play.addEventListener('click', () => {
@@ -57,7 +57,7 @@ export class MenuScene implements Scene<GameEvents> {
     });
 
     const how = document.createElement('button');
-    how.className = 'btn secondary';
+    how.className = 'btn secondary menu-how';
     how.textContent = 'How to Play';
     how.addEventListener('click', () => {
       ctx.audio.uiClick();
@@ -75,7 +75,7 @@ export class MenuScene implements Scene<GameEvents> {
       '<b>Tools:</b> shovel (S) digs up a plant. Esc pauses. Lawn mowers are a one-time last resort per row.';
 
     const settingsRow = document.createElement('div');
-    settingsRow.className = 'btn-row';
+    settingsRow.className = 'btn-row menu-settings';
     const sound = document.createElement('button');
     sound.className = 'btn secondary';
     const updateSound = (): void => {
@@ -111,7 +111,10 @@ export class MenuScene implements Scene<GameEvents> {
     });
     settingsRow.append(sound, contrast, gallery);
 
-    root.append(titleWrap, play, how, help, settingsRow);
+    const actions = document.createElement('div');
+    actions.className = 'menu-actions';
+    actions.append(play, how);
+    root.append(titleWrap, actions, help, settingsRow);
     uiInner.appendChild(root);
     this.root = root;
 
@@ -157,31 +160,42 @@ export class MenuScene implements Scene<GameEvents> {
     // ---- plant-vs-zombie vignette ----
     const t = this.t;
     ctx.save();
-    // sunflower + wallnut line-up
-    ctx.translate(118, 452);
-    ctx.scale(1.35, 1.35);
+    // A staged garden-defense vignette: friendly mass on the left, threat
+    // entering from the right, and a projectile connecting the two.
+    ctx.translate(116, 472);
+    ctx.scale(1.42, 1.42);
     paintSunflower(ctx, t, { glow: 0.25 });
     ctx.restore();
     ctx.save();
-    ctx.translate(236, 458);
+    ctx.translate(210, 482);
+    ctx.scale(1.08, 1.08);
     paintWallnut(ctx, { hpFrac: 1 });
     ctx.restore();
     // peashooter (baked sprite, idle)
-    drawSpriteFrame(ctx, this.ctx.assets, 'peashooter', this.animator.frameOf(-1), 300, 478, { scale: 1.05 });
+    drawSpriteFrame(ctx, this.ctx.assets, 'peashooter', this.animator.frameOf(-1), 286, 492, { scale: 1.22 });
     // pea flying toward the approaching zombie
     const peaPhase = (t % 1.5) / 1.5;
-    drawSpriteFrame(ctx, this.ctx.assets, 'pea', this.animator.frameOf(-3), 330 + peaPhase * 300, 440 - Math.sin(peaPhase * Math.PI) * 14, {});
+    drawSpriteFrame(ctx, this.ctx.assets, 'pea', this.animator.frameOf(-3), 332 + peaPhase * 260, 448 - Math.sin(peaPhase * Math.PI) * 13, { scale: 1.08 });
     // zombie ambles across the menu (flipped to face the plants)
-    const zx = 1000 - ((t * 26) % 1250);
-    drawSpriteFrame(ctx, this.ctx.assets, 'zombie-basic', this.animator.frameOf(-2), zx, 512, {
-      scale: 0.8,
+    const zx = 735 - ((t * 22) % 900);
+    drawSpriteFrame(ctx, this.ctx.assets, 'zombie-basic', this.animator.frameOf(-2), zx, 516, {
+      scale: 0.92,
       flipX: true,
     });
     ctx.restore();
 
-    // soft dim behind the menu content, warm lighting pass
-    ctx.fillStyle = 'rgba(16,36,20,0.32)';
+    // Shape the contrast around the title while preserving the painted lawn.
+    const shade = ctx.createRadialGradient(400, 210, 80, 400, 250, 500);
+    shade.addColorStop(0, 'rgba(12,34,18,0.10)');
+    shade.addColorStop(0.58, 'rgba(12,34,18,0.22)');
+    shade.addColorStop(1, 'rgba(8,20,12,0.46)');
+    ctx.fillStyle = shade;
     ctx.fillRect(0, 0, this.ctx.view.logicalW, this.ctx.view.logicalH);
+    const ground = ctx.createLinearGradient(0, 360, 0, 600);
+    ground.addColorStop(0, 'rgba(5,18,9,0)');
+    ground.addColorStop(1, 'rgba(5,18,9,0.22)');
+    ctx.fillStyle = ground;
+    ctx.fillRect(0, 360, 800, 240);
     this.battlefield.drawLighting(ctx, this.lighting);
   }
 }
